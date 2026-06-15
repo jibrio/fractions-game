@@ -91,6 +91,17 @@
   .modeRow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:18px;}
   .modeRow .btn{margin-top:0;}
   .streak{font-weight:800; font-size:13px; letter-spacing:.5px; color:var(--gold); text-shadow:0 0 10px rgba(255,210,63,.5); white-space:nowrap;}
+  #verifyBtn{margin-top:12px;}
+  .galleryTitle{font-family:var(--disp); font-weight:400; letter-spacing:1px; font-size:clamp(28px,7vw,46px); margin:4px 0 16px;
+    background:linear-gradient(180deg,#fff,var(--pink) 55%,var(--magenta)); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 14px rgba(255,46,136,.55));}
+  .galleryGrid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:min(580px,94%); overflow-y:auto; max-height:64vh; padding:4px;}
+  .tcard{background:var(--panel); border:1.5px solid var(--panel-bd); border-radius:16px; padding:10px 6px 8px; cursor:pointer;
+    text-align:center; transition:transform .08s; box-shadow:0 0 18px rgba(164,77,255,.12);}
+  .tcard:active{transform:scale(.95);}
+  .tcard svg{width:100%; height:62px; display:block;}
+  .tcard .tname{font-weight:700; font-size:12px; margin-top:7px; color:#fff; line-height:1.15;}
+  @media(max-width:430px){ .galleryGrid{grid-template-columns:repeat(2,1fr);} }
   .topCongrats{
     position:absolute; top:54px; left:0; right:0; z-index:8; text-align:center; pointer-events:none;
     font-family:var(--disp); font-size:clamp(28px,7vw,48px); line-height:1;
@@ -129,6 +140,7 @@
       <div class="modeRow">
         <button class="btn" id="learnBtn">Learn ▶</button>
         <button class="btn cyan" id="endlessBtn">Endless ∞</button>
+        <button class="btn" id="levelsBtn">Levels ▦</button>
       </div>
     </div>
   </section>
@@ -136,6 +148,7 @@
   <!-- ===== LEVEL ===== -->
   <section id="levelScreen" class="screen">
     <div class="topbar">
+      <button class="muteBtn" id="backBtn" style="display:none" aria-label="Back to levels">←</button>
       <span class="lvtag" id="lvTag">Stage 1</span>
       <span class="dots" id="dots"></span>
       <span class="streak" id="streak"></span>
@@ -146,6 +159,7 @@
       <div id="promptWrap">
         <div id="prompt">Slice it fair</div>
         <div id="subhint"></div>
+        <button class="btn cyan" id="verifyBtn" style="display:none">Verify ✓</button>
       </div>
       <div id="reveal">
         <div class="bigfrac" id="bigfrac">½</div>
@@ -154,6 +168,13 @@
         <button class="btn cyan" id="nextBtn">Next ▶</button>
       </div>
     </div>
+  </section>
+
+  <!-- ===== LEVELS GALLERY ===== -->
+  <section id="galleryScreen" class="screen">
+    <h1 class="galleryTitle">Level Types</h1>
+    <div id="galleryGrid" class="galleryGrid"></div>
+    <button class="btn" id="galleryBack">← Menu</button>
   </section>
 
   <div id="topCongrats" class="topCongrats"></div>
@@ -256,15 +277,18 @@ const VULGAR={'1/2':'½','1/3':'⅓','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'�
 const fracLabel=(num,den)=>VULGAR[num+'/'+den]||(num+'/'+den);
 const rnd=n=>Math.floor(Math.random()*n);
 function generateLevel(n){
-  const maxDen=Math.min(2+Math.floor(n/2),10);     // denominators grow 2 → 10
+  // halves are too easy: keep them rare and only near the very start.
+  const minDen=(n<2)?2:(n<5?3:4);
+  const maxDen=Math.min(Math.max(minDen+1,2+Math.floor(n/2)),10);
   const fourOpts=n>=4, friends=1;
   let bag=['choose','shade','numberline','fill'];
   if(n>=2) bag.push('build');
   if(n>=4) bag.push('order','pickpair');
   let mech; do{ mech=bag[rnd(bag.length)]; }while(mech===lastEndlessMech && bag.length>1);
   lastEndlessMech=mech;
-  const den=2+rnd(maxDen-1);                         // 2 → maxDen
-  const num=(n<3)?1:(1+rnd(den-1));                  // unit fractions early, any later
+  const den=minDen+rnd(maxDen-minDen+1);             // grows; never tiny once past the start
+  let num=(n<3)?1:(1+rnd(den-1));                    // unit fractions early, any later
+  if(n>=2 && num*2===den){ num=(num<den-1)?num+1:num-1; }  // dodge exact halves after the start
   const label=fracLabel(num,den);
 
   if(mech==='shade')
@@ -324,7 +348,7 @@ const KIDS=[
 ];
 
 /* ---------- state ---------- */
-const state={name:'Dara', age:null, level:0, locked:false, mode:'learn', streak:0, best:0, missed:false, genIdx:-1, genLv:null, lv:null};
+const state={name:'Dara', age:null, level:0, locked:false, mode:'learn', streak:0, best:0, missed:false, genIdx:-1, genLv:null, lv:null, singleLv:null, singleName:''};
 
 /* =====================================================================
    AUDIO  — all synthesised with the Web Audio API (sfx + celebration).
@@ -412,7 +436,7 @@ const APPLE_R=132;
 const BAR={w:430, h:170};
 
 /* ---------- DOM ---------- */
-const screens={intro:document.getElementById('introScreen'),level:document.getElementById('levelScreen')};
+const screens={intro:document.getElementById('introScreen'),level:document.getElementById('levelScreen'),gallery:document.getElementById('galleryScreen')};
 const stage=document.getElementById('stage');
 const promptEl=document.getElementById('prompt');
 const subhint=document.getElementById('subhint');
@@ -428,6 +452,13 @@ function startGame(mode){
 }
 document.getElementById('learnBtn').addEventListener('click',()=>startGame('learn'));
 document.getElementById('endlessBtn').addEventListener('click',()=>startGame('endless'));
+document.getElementById('levelsBtn').addEventListener('click',showGallery);
+document.getElementById('galleryBack').addEventListener('click',()=>show('intro'));
+document.getElementById('backBtn').addEventListener('click',showGallery);
+document.getElementById('verifyBtn').addEventListener('click',()=>{
+  if(state.locked || !curMech || !curMech.verify) return;
+  curMech.verify();
+});
 document.getElementById('muteBtn').addEventListener('click',()=>{
   AUDIO.muted=!AUDIO.muted;
   document.getElementById('muteBtn').textContent = AUDIO.muted ? '🔇' : '🔊';
@@ -435,11 +466,79 @@ document.getElementById('muteBtn').addEventListener('click',()=>{
 });
 document.getElementById('nextBtn').addEventListener('click',()=>{
   audioInit();
+  if(state.mode==='single'){ showGallery(); return; }
   const n=state.level+1;
   if(state.mode==='endless') startLevel(n);
   else if(n<LEVELS.length) startLevel(n);
   else finishGame();
 });
+
+/* =====================================================================
+   LEVELS GALLERY — one card per level TYPE (named for easy discussion)
+   ===================================================================== */
+const TYPES=[
+  {key:'slice', name:'Slice in Half', sample:{mechanic:'slice',parts:2,label:'½',line:'1 of 2 equal parts',say:'one part of two',prompt:'Slice it in HALF'}},
+  {key:'tap', name:'Share the Bar', sample:{mechanic:'tap',parts:4,label:'¼',line:'1 of 4 equal parts',say:'one part of four',prompt:'Break it for 4 friends'}},
+  {key:'shade', name:'Shade It', sample:{mechanic:'shade',friends:1,parts:4,target:3,label:'¾',line:'3 of 4 equal parts',say:'three parts of four',prompt:'Shade ¾'}},
+  {key:'fill', name:'Fill the Glass', sample:{mechanic:'fill',friends:1,target:0.75,steps:4,label:'¾',line:'three quarters full',say:'three parts of four',prompt:'Fill it to ¾'}},
+  {key:'numberline', name:'Place on the Line', sample:{mechanic:'numberline',friends:1,target:0.75,steps:4,label:'¾',line:'¾ on the line',say:'three parts of four',prompt:'Hop to ¾'}},
+  {key:'build', name:'Build a Whole', sample:{mechanic:'build',friends:1,parts:4,label:'1',line:'4/4 makes one whole',say:'all the parts together',prompt:'Build 1 whole'}},
+  {key:'choose', name:'Spot the Fraction', sample:{mechanic:'choose',friends:1,label:'⅓',line:'1 of 3 equal parts',say:'one part of three',prompt:'Which shows ⅓?',
+    options:[{type:'bar',params:{parts:3,shaded:1},correct:true},{type:'bar',params:{parts:3,shaded:2}},{type:'bar',params:{parts:4,shaded:1}}]}},
+  {key:'order', name:'Put in Order', sample:{mechanic:'order',friends:1,label:'✓',line:'smallest → biggest',prompt:'Order: small → big',
+    items:[{value:.25,type:'bar',params:{parts:4,shaded:1}},{value:.5,type:'bar',params:{parts:2,shaded:1}},{value:.75,type:'bar',params:{parts:4,shaded:3}}]}},
+  {key:'pickpair', name:'Two Make a Whole', sample:{mechanic:'pickpair',friends:1,targetSum:1,label:'1',line:'¼ + ¾ = 1',say:'two parts that make a whole',prompt:'Tap TWO that make 1 whole',
+    options:[{value:.25,type:'bar',params:{parts:4,shaded:1}},{value:.75,type:'bar',params:{parts:4,shaded:3}},{value:.5,type:'bar',params:{parts:2,shaded:1}},{value:1/3,type:'bar',params:{parts:3,shaded:1}}]}},
+];
+function drawThumb(svg,key){
+  const B={cx:60,cy:46,w:96,h:56}, add=(t,a)=>svg.appendChild(el(t,a));
+  if(key==='choose'){ renderCard('pie',{parts:3,shaded:1},B,svg); return; }
+  if(key==='shade'){ renderCard('bar',{parts:4,shaded:3},B,svg); return; }
+  if(key==='slice'){
+    add('circle',{cx:60,cy:50,r:27,fill:'#ff3b3b',stroke:'#b81e2c','stroke-width':3});
+    add('rect',{x:57,y:18,width:6,height:12,rx:3,fill:'#7a4a22'});
+    add('path',{d:'M63 21 q15 -6 19 5 q-15 5 -19 -5 Z',fill:'#39b54a'});
+    add('line',{x1:60,y1:25,x2:60,y2:78,stroke:'#fff','stroke-width':2,'stroke-dasharray':'4 4',opacity:.85}); return; }
+  if(key==='tap'||key==='build'){
+    const x0=12,bw=24,y0=26,h=44,fill=key==='build'?'#ffb02e':'#5a371f';
+    for(let i=0;i<4;i++) add('rect',{x:x0+i*bw,y:y0,width:bw,height:h,fill,stroke:'#2a160a','stroke-width':2}); return; }
+  if(key==='numberline'){
+    const x0=14,x1=106,y=48;
+    add('line',{x1:x0,y1:y,x2:x1,y2:y,stroke:'#2ee6ff','stroke-width':4,'stroke-linecap':'round'});
+    for(let i=0;i<=4;i++){const x=x0+(x1-x0)*i/4; add('line',{x1:x,y1:y-6,x2:x,y2:y+6,stroke:'#fff','stroke-width':i%4===0?3:2,opacity:i%4===0?1:.5});}
+    add('circle',{cx:x0+(x1-x0)*0.75,cy:y,r:9,fill:'#ff2e88',stroke:'#fff','stroke-width':3}); return; }
+  if(key==='fill'){
+    add('rect',{x:44,y:14,width:34,height:62,rx:8,fill:'#fff','fill-opacity':.06,stroke:'#bdefff','stroke-width':3});
+    add('rect',{x:48,y:42,width:26,height:30,rx:4,fill:'#ff7a3c'}); return; }
+  if(key==='order'){
+    const ys=[20,42,64],w=84,x=18,h=14;
+    [1,2,3].forEach((sh,i)=>{ add('rect',{x,y:ys[i],width:w,height:h,fill:'rgba(255,255,255,.1)',stroke:'#fff','stroke-width':1.5});
+      add('rect',{x,y:ys[i],width:w*sh/4,height:h,fill:'#ffb02e'}); }); return; }
+  if(key==='pickpair'){
+    add('rect',{x:8,y:32,width:34,height:28,fill:'rgba(255,255,255,.1)',stroke:'#fff','stroke-width':2});
+    add('rect',{x:8,y:32,width:34*0.25,height:28,fill:'#ffb02e'});
+    const plus=el('text',{x:60,y:53,'text-anchor':'middle','font-size':22,fill:'#fff','font-family':"'Black Han Sans',sans-serif"}); plus.textContent='+'; svg.appendChild(plus);
+    add('rect',{x:78,y:32,width:34,height:28,fill:'rgba(255,255,255,.1)',stroke:'#fff','stroke-width':2});
+    add('rect',{x:78,y:32,width:34*0.75,height:28,fill:'#ffb02e'}); return; }
+}
+let galleryBuilt=false;
+function buildGallery(){
+  if(galleryBuilt) return; galleryBuilt=true;
+  const grid=document.getElementById('galleryGrid');
+  TYPES.forEach(t=>{
+    const card=document.createElement('div'); card.className='tcard';
+    const svg=document.createElementNS(SVGNS,'svg'); svg.setAttribute('viewBox','0 0 120 90');
+    drawThumb(svg,t.key); card.appendChild(svg);
+    const nm=document.createElement('div'); nm.className='tname'; nm.textContent=t.name; card.appendChild(nm);
+    card.addEventListener('click',()=>openType(t));
+    grid.appendChild(card);
+  });
+}
+function showGallery(){ buildGallery(); show('gallery'); }
+function openType(t){
+  state.mode='single'; state.singleLv=t.sample; state.singleName=t.name;
+  audioInit(); startLevel(0);
+}
 
 /* =====================================================================
    CHARACTERS
@@ -656,6 +755,7 @@ function cardStroke(card,color,op){ card._panel.setAttribute('stroke',color); ca
 const shakeKf=[{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}];
 
 function levelFor(idx){
+  if(state.mode==='single') return state.singleLv;
   if(state.mode==='endless'){
     if(state.genIdx!==idx){ state.genLv=generateLevel(idx); state.genIdx=idx; }
     return state.genLv;
@@ -669,13 +769,15 @@ function startLevel(idx){
   show('level');
   revealEl.classList.remove('show'); promptWrap.style.display='';
   promptEl.textContent=lv.prompt;
-  document.getElementById('lvTag').textContent='Stage '+(idx+1);
-  // progress UI: dots for the learn path, a streak counter for endless
-  const dots=document.getElementById('dots'); const streakEl=document.getElementById('streak');
-  if(state.mode==='endless'){
-    dots.style.display='none'; streakEl.style.display=''; updateStreak();
+  // progress UI: dots for Learn, a streak for Endless, the type name for a single inspected level
+  const dots=document.getElementById('dots'), streakEl=document.getElementById('streak'), lvTag=document.getElementById('lvTag');
+  document.getElementById('backBtn').style.display = state.mode==='single' ? '' : 'none';
+  if(state.mode==='single'){
+    dots.style.display='none'; streakEl.style.display='none'; lvTag.textContent=state.singleName;
+  } else if(state.mode==='endless'){
+    dots.style.display='none'; streakEl.style.display=''; updateStreak(); lvTag.textContent='Stage '+(idx+1);
   } else {
-    streakEl.style.display='none'; dots.style.display=''; dots.innerHTML='';
+    streakEl.style.display='none'; dots.style.display=''; dots.innerHTML=''; lvTag.textContent='Stage '+(idx+1);
     LEVELS.forEach((_,i)=>{const d=document.createElement('span');d.className='dot'+(i<=idx?' on':'');dots.appendChild(d);});
   }
 
@@ -695,6 +797,10 @@ function startLevel(idx){
   stage.appendChild(scene);
   bindInput();
 
+  // Verify button: shown only for "set a value, then check" puzzles
+  const vb=document.getElementById('verifyBtn');
+  vb.style.display = curMech.verify ? '' : 'none';
+
   // hide any leftover praise banner when a fresh level loads
   const tc=document.getElementById('topCongrats'); tc.classList.remove('show'); tc.textContent='';
 }
@@ -705,9 +811,11 @@ function updateStreak(){
   if(el) el.textContent = `🔥 ${state.streak}  ·  best ${state.best}`;
 }
 function endlessMiss(){
-  if(state.mode!=='endless') return;
-  state.missed=true; state.streak=0; updateStreak();
+  state.missed=true;
+  if(state.mode==='endless'){ state.streak=0; updateStreak(); }
 }
+// wrong answer on a Verify puzzle: feedback only, let them adjust and try again
+function tryAgain(msg){ sfxError(); endlessMiss(); subhint.textContent=msg||'Not quite - try again'; }
 
 /* ---- shared outcomes (reused by every mechanic) ---- */
 function winLevel(lv){
@@ -938,13 +1046,13 @@ MECHANICS.numberline={
     g.appendChild(m); this.place(0);
   },
   place(v){this.val=v; this.marker.setAttribute('transform',`translate(${nlX(v)},${NL.y})`);},
-  down(p,e){if(Math.abs(p.y-NL.y)>120)return; e.preventDefault(); this.dragging=true; this.place(snapTo(nlV(p.x),this.steps));},
+  down(p,e){if(state.locked||Math.abs(p.y-NL.y)>120)return; e.preventDefault(); this.dragging=true; this.place(snapTo(nlV(p.x),this.steps));},
   move(p,e){if(!this.dragging)return; e.preventDefault(); this.place(snapTo(nlV(p.x),this.steps));},
-  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=state.lv;
+  up(p,e){if(!this.dragging)return; this.dragging=false;},   // no judging here — wait for Verify
+  verify(){ const lv=state.lv;
     if(Math.abs(this.val-this.target)<1e-6){ this.mlab.setAttribute('opacity',1); winLevel(lv); }
-    else missLevel(lv, ()=>{setMood(kids[0],'sad');
-      this.marker.animate([{transform:`translate(${nlX(this.val)-9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)+9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)}px,${NL.y}px)`}],{duration:320});},
-      'Not there yet', `Find ${lv.label} between 0 and 1`);}
+    else { tryAgain(`Not there yet - find ${lv.label}`); setMood(kids[0],'sad'); setTimeout(()=>setMood(kids[0],'neutral'),700);
+      this.marker.animate([{transform:`translate(${nlX(this.val)-9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)+9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)}px,${NL.y}px)`}],{duration:320}); } }
 };
 
 /* ---- MECHANIC: fill — pour to a fraction (measurement model) ---- */
@@ -977,12 +1085,12 @@ MECHANICS.fill={
   },
   setFill(f){this.val=f; const y=glYForF(f); this.liquid.setAttribute('y',y); this.liquid.setAttribute('height',glInnerBot-y); this.knobC.setAttribute('cy',y);},
   inGlass(p){return p.x>GL.x0-55 && p.x<GL.x1+55 && p.y>GL.y0-30 && p.y<GL.y1+30;},
-  down(p,e){if(!this.inGlass(p))return; e.preventDefault(); this.dragging=true; this.setFill(snapTo(glFForY(p.y),this.steps));},
+  down(p,e){if(state.locked||!this.inGlass(p))return; e.preventDefault(); this.dragging=true; this.setFill(snapTo(glFForY(p.y),this.steps));},
   move(p,e){if(!this.dragging)return; e.preventDefault(); this.setFill(snapTo(glFForY(p.y),this.steps));},
-  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=state.lv;
+  up(p,e){if(!this.dragging)return; this.dragging=false;},   // no judging here — wait for Verify
+  verify(){ const lv=state.lv;
     if(Math.abs(this.val-this.target)<1e-6) winLevel(lv);
-    else missLevel(lv, ()=>setMood(kids[0], this.val>this.target?'greedy':'sad'),
-      this.val>this.target?'Too much!':'Not enough', `Fill it to ${lv.label}`);}
+    else { tryAgain(this.val>this.target?'Too much - try again':'Not enough - try again'); setMood(kids[0],this.val>this.target?'greedy':'sad'); setTimeout(()=>setMood(kids[0],'neutral'),700); } }
 };
 
 /* ---- MECHANIC: choose — pick the right one from similar options ---- */
@@ -1090,8 +1198,10 @@ MECHANICS.build={
     this.slots[this.filled].setAttribute('stroke',cast[0].accent);
     this.filled++;
     this.count.textContent = this.filled===this.n ? '1 whole!' : `${this.filled}/${this.n}`;
+  },
+  verify(){ const lv=state.lv;
     if(this.filled===this.n) winLevel(lv);
-  }
+    else tryAgain('Not a whole yet - keep adding'); }
 };
 
 /* ---- MECHANIC: shade — tap parts of ONE shape to show a fraction ---- */
@@ -1115,10 +1225,11 @@ MECHANICS.shade={
     if(state.locked) return;
     this.on[i]=!this.on[i]; sfxPop();
     this.segs[i].setAttribute('fill', this.on[i]?'#ff2e88':'rgba(255,255,255,0.06)');
-    const c=this.on.filter(Boolean).length;
-    this.count.textContent=`${c}/${this.parts}`;
+    this.count.textContent=`${this.on.filter(Boolean).length}/${this.parts}`;
+  },
+  verify(){ const lv=state.lv, c=this.on.filter(Boolean).length;
     if(c===this.target) winLevel(lv);
-  }
+    else tryAgain(`Not ${lv.label} yet - you shaded ${c} of ${this.parts}`); }
 };
 
 /* ---- MECHANIC: order — tap the cards from smallest to biggest ---- */
@@ -1195,7 +1306,8 @@ function showReveal(lv){
   const ex=document.getElementById('explain');
   if(lv.say){ ex.style.display=''; ex.innerHTML=`<b>${lv.label}</b> means “${lv.say}”`; }
   else { ex.style.display='none'; ex.innerHTML=''; }
-  document.getElementById('nextBtn').textContent = (state.mode==='endless'||state.level<LEVELS.length-1)?'Next ▶':'Finish ★';
+  document.getElementById('nextBtn').textContent = state.mode==='single' ? 'Levels ▦'
+    : (state.mode==='endless'||state.level<LEVELS.length-1) ? 'Next ▶' : 'Finish ★';
   revealEl.classList.add('show');
 }
 function finishGame(){
