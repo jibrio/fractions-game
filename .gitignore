@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# iCloud placeholder files
+*.icloud
+
+# Editor / temp
+*.swp
+*~
+.vscode/
+.idea/

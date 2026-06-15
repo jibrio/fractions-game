@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cool Fractions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Poppins:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#16071f; --bg2:#2a0a3e; --bg3:#0b1230;
+    --magenta:#ff2e88; --pink:#ff5fae; --cyan:#2ee6ff; --purple:#a44dff;
+    --gold:#ffd23f; --ink:#0c0418; --panel:rgba(30,12,48,.72); --panel-bd:rgba(255,93,174,.45);
+    --disp:'Black Han Sans','Arial Black',Impact,sans-serif;
+    --body:'Poppins','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; font-family:var(--body); overflow:hidden;}
+  body{
+    color:#fff; touch-action:none;
+    background:
+      radial-gradient(60% 50% at 20% 12%, rgba(255,46,136,.35), transparent 70%),
+      radial-gradient(55% 45% at 85% 18%, rgba(46,230,255,.28), transparent 70%),
+      radial-gradient(70% 60% at 50% 110%, rgba(164,77,255,.35), transparent 70%),
+      linear-gradient(160deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+    display:flex; align-items:center; justify-content:center;
+  }
+  #app{position:relative; width:100%; height:100%; max-width:900px; max-height:760px; margin:auto; overflow:hidden;}
+
+  .screen{position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; padding:16px; text-align:center;}
+  .screen.active{display:flex; animation:fade .45s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+
+  h1{
+    font-family:var(--disp); font-weight:400; letter-spacing:1px;
+    font-size:clamp(40px,9vw,78px); line-height:.92; margin:0;
+    background:linear-gradient(180deg,#fff,var(--pink) 55%,var(--magenta));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 14px rgba(255,46,136,.65)) drop-shadow(0 4px 0 rgba(0,0,0,.25));
+  }
+  .tag{font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--cyan);
+       font-size:clamp(11px,2.4vw,15px); margin:10px 0 26px; text-shadow:0 0 10px rgba(46,230,255,.7);}
+
+  .panel{
+    background:var(--panel); border:1.5px solid var(--panel-bd); border-radius:22px;
+    padding:22px 22px 26px; width:min(430px,94%);
+    box-shadow:0 0 40px rgba(255,46,136,.18), inset 0 0 30px rgba(164,77,255,.12);
+    backdrop-filter:blur(8px);
+  }
+  label{display:block; font-weight:700; font-size:14px; letter-spacing:1px; text-transform:uppercase;
+        color:var(--cyan); margin:16px 0 7px; text-align:left;}
+  input{
+    width:100%; font-size:20px; font-family:var(--body); font-weight:600; color:#fff;
+    padding:13px 15px; border-radius:14px; border:1.5px solid rgba(46,230,255,.4);
+    background:rgba(8,4,20,.6); outline:none;
+  }
+  input::placeholder{color:rgba(255,255,255,.35);}
+  input:focus{border-color:var(--magenta); box-shadow:0 0 0 3px rgba(255,46,136,.25);}
+  .hello{font-family:var(--disp); font-size:clamp(34px,8vw,52px); line-height:1;
+    background:linear-gradient(180deg,#fff,var(--cyan) 60%,var(--purple));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 14px rgba(46,230,255,.6));}
+  .hellosub{font-weight:700; font-size:clamp(16px,3.8vw,21px); color:#fff; opacity:.92; margin:10px 0 4px;}
+
+  .btn{
+    font-family:var(--disp); font-weight:400; letter-spacing:2px; cursor:pointer; border:none; color:#fff;
+    text-transform:uppercase; font-size:clamp(20px,4.2vw,26px); padding:14px 36px; border-radius:999px;
+    background:linear-gradient(180deg,var(--magenta),#c01368);
+    box-shadow:0 0 22px rgba(255,46,136,.6), 0 6px 0 #7a0a40;
+    transition:transform .07s, box-shadow .07s; margin-top:22px;
+  }
+  .btn:active{transform:translateY(4px); box-shadow:0 0 18px rgba(255,46,136,.5), 0 2px 0 #7a0a40;}
+  .btn.cyan{background:linear-gradient(180deg,var(--cyan),#0b9ec2); box-shadow:0 0 22px rgba(46,230,255,.6),0 6px 0 #07697f;}
+
+  /* ===== LEVEL LAYOUT: chars top (in svg) / food middle (in svg) / text bottom ===== */
+  #levelScreen{justify-content:space-between; padding:8px 8px 14px;}
+  .topbar{width:100%; display:flex; justify-content:space-between; align-items:center; padding:6px 12px; font-weight:700;}
+  .lvtag{letter-spacing:3px; text-transform:uppercase; font-size:12px; color:var(--cyan); text-shadow:0 0 8px rgba(46,230,255,.6);}
+  .dots{display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:62%;}
+  .dot{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.25);}
+  .dot.on{background:var(--magenta); box-shadow:0 0 10px var(--magenta);}
+  #stage{flex:1; width:100%; display:flex; align-items:center; justify-content:center; min-height:0;}
+  svg.scene{width:100%; height:100%; touch-action:none;}
+
+  .bottombar{width:100%; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  #prompt{font-family:var(--disp); font-weight:400; letter-spacing:1px; text-transform:uppercase;
+          font-size:clamp(22px,5vw,34px); line-height:1; text-shadow:0 0 16px rgba(255,46,136,.5);}
+  #subhint{font-weight:600; font-size:14px; color:rgba(255,255,255,.6); margin-top:8px; height:18px; letter-spacing:.5px;}
+
+  .muteBtn{background:none; border:none; cursor:pointer; font-size:22px; line-height:1; padding:2px 4px; filter:drop-shadow(0 0 6px rgba(46,230,255,.5));}
+  .topCongrats{
+    position:absolute; top:54px; left:0; right:0; z-index:8; text-align:center; pointer-events:none;
+    font-family:var(--disp); font-size:clamp(28px,7vw,48px); line-height:1;
+    background:linear-gradient(180deg,#fff,var(--gold) 55%,var(--magenta));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 18px rgba(255,210,63,.7));
+    opacity:0; transform:scale(.5) translateY(-8px) rotate(-3deg); transition:none;
+  }
+  .topCongrats.show{opacity:1; transform:none; animation:popj .5s cubic-bezier(.2,1.6,.4,1);}
+  @keyframes popj{from{transform:scale(.5) translateY(-8px) rotate(-3deg); opacity:0;} to{transform:none; opacity:1;}}
+  #reveal{display:none; flex-direction:column; align-items:center; animation:pop .5s cubic-bezier(.2,1.4,.4,1);}
+  #reveal.show{display:flex;}
+  @keyframes pop{from{transform:scale(.6); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .bigfrac{font-family:var(--disp); font-size:clamp(56px,15vw,92px); line-height:.9;
+    background:linear-gradient(180deg,#fff,var(--cyan) 60%,var(--purple));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 18px rgba(46,230,255,.7));}
+  .frline{font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:clamp(14px,3.4vw,19px); color:var(--gold);
+          text-shadow:0 0 12px rgba(255,210,63,.5); margin-top:-2px;}
+  .explain{font-weight:600; font-size:clamp(15px,3.6vw,20px); color:#fff; opacity:.92; margin-top:8px; letter-spacing:.3px;}
+  .explain b{color:var(--cyan); font-weight:800;}
+
+  canvas#confetti{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:9;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== INTRO ===== -->
+  <section id="introScreen" class="screen active">
+    <h1>COOL<br>FRACTIONS</h1>
+    <div class="tag">★ Let's learn the fun way ★</div>
+    <div class="panel">
+      <div class="hello">Hi, Dara!</div>
+      <button class="btn" id="startBtn">Let's play ▶</button>
+    </div>
+  </section>
+
+  <!-- ===== LEVEL ===== -->
+  <section id="levelScreen" class="screen">
+    <div class="topbar">
+      <span class="lvtag" id="lvTag">Stage 1</span>
+      <span class="dots" id="dots"></span>
+      <button class="muteBtn" id="muteBtn" aria-label="Toggle sound">🔊</button>
+    </div>
+    <div id="stage"></div>
+    <div class="bottombar">
+      <div id="promptWrap">
+        <div id="prompt">Slice it fair</div>
+        <div id="subhint"></div>
+      </div>
+      <div id="reveal">
+        <div class="bigfrac" id="bigfrac">½</div>
+        <div class="frline" id="frline">1 of 2 equal parts</div>
+        <div class="explain" id="explain">½ means “one part of two”</div>
+        <button class="btn cyan" id="nextBtn">Next ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="topCongrats" class="topCongrats"></div>
+  <canvas id="confetti"></canvas>
+</div>
+
+<script>
+/* =====================================================================
+   COOL FRACTIONS  —  a playful start to fractions
+   - State machine + LEVELS config (easy to extend)
+   - Generalized "cut" engine: N equal parts, fairness check
+   - Uneven cut => some friends get sad (retry)
+   ===================================================================== */
+
+const SVGNS='http://www.w3.org/2000/svg';
+const el=(t,a)=>{const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+/* ---------- LEVELS (add more here) ---------- */
+const LEVELS=[
+  // 1 — slice halves (make)
+  {mechanic:'slice', parts:2, label:'½', line:'1 of 2 equal parts', say:'one part of two', prompt:'Slice it in HALF'},
+  // 2 — break thirds (make)
+  {mechanic:'tap', parts:3, label:'⅓', line:'1 of 3 equal parts', say:'one part of three', prompt:'Break it for 3 friends'},
+  // 3 — recognise ½ (pick, pies)
+  {mechanic:'choose', friends:1, label:'½', line:'equal parts matter', say:'one part of two', prompt:'Which shows ½?',
+    options:[ {type:'pie', params:{parts:2,shaded:1}, correct:true},
+              {type:'pie', params:{angles:[0.64,0.36],shaded:1}},
+              {type:'pie', params:{parts:3,shaded:1}} ]},
+  // 4 — shade ½ (make, new type)
+  {mechanic:'shade', friends:1, parts:2, target:1, label:'½', line:'1 of 2 equal parts', say:'one part of two', prompt:'Shade ½ of the bar'},
+  // 5 — break quarters (make)
+  {mechanic:'tap', parts:4, label:'¼', line:'1 of 4 equal parts', say:'one part of four', prompt:'Break it for 4 friends'},
+  // 6 — fill to ½ (make)
+  {mechanic:'fill', friends:1, label:'½', target:0.5, steps:4, line:'half a glass', say:'one part of two', prompt:'Fill it to ½'},
+  // 7 — recognise ¾ (pick, bars)
+  {mechanic:'choose', friends:1, label:'¾', line:'3 of 4 equal parts', say:'three parts of four', prompt:'Which shows ¾?',
+    options:[ {type:'bar', params:{parts:4,shaded:3}, correct:true},
+              {type:'bar', params:{parts:4,shaded:1}},
+              {type:'bar', params:{parts:4,shaded:2}} ]},
+  // 8 — number line ½ (make)
+  {mechanic:'numberline', friends:1, label:'½', target:0.5, steps:4, line:'½ is halfway to 1', say:'halfway between 0 and 1', prompt:'Hop to ½'},
+  // 9 — shade ⅓ (make)
+  {mechanic:'shade', friends:1, parts:3, target:1, label:'⅓', line:'1 of 3 equal parts', say:'one part of three', prompt:'Shade ⅓ of the bar'},
+  // 10 — ½ of a set (pick, cookies)
+  {mechanic:'choose', friends:1, label:'½', line:'half the cookies', say:'one part of two', prompt:'Which is ½ the cookies?',
+    options:[ {type:'set', params:{total:6,shaded:3}, correct:true},
+              {type:'set', params:{total:6,shaded:2}},
+              {type:'set', params:{total:6,shaded:4}} ]},
+  // 11 — build one whole (make)
+  {mechanic:'build', friends:1, parts:4, label:'1', line:'4/4 makes one whole', say:'all the parts together', prompt:'Build 1 whole'},
+  // 12 — equivalence ½ = 2/4 (pick)
+  {mechanic:'choose', friends:1, label:'2/4', line:'2/4 is the same as ½', say:'the same as one half', prompt:'Which equals ½?',
+    options:[ {type:'bar', params:{parts:4,shaded:2}, correct:true},
+              {type:'bar', params:{parts:3,shaded:1}},
+              {type:'bar', params:{parts:4,shaded:1}} ]},
+  // 13 — order ¼ < ½ < ¾ (new type: ordering)
+  {mechanic:'order', friends:1, label:'✓', line:'¼ < ½ < ¾', prompt:'Order: small → big',
+    items:[ {value:0.25,type:'bar',params:{parts:4,shaded:1}},
+            {value:0.5, type:'bar',params:{parts:2,shaded:1}},
+            {value:0.75,type:'bar',params:{parts:4,shaded:3}} ]},
+  // 14 — fill to ¾ (make)
+  {mechanic:'fill', friends:1, label:'¾', target:0.75, steps:4, line:'three quarters full', say:'three parts of four', prompt:'Fill it to ¾'},
+  // 15 — shade ⅔ (make, non-unit, harder)
+  {mechanic:'shade', friends:1, parts:3, target:2, label:'⅔', line:'2 of 3 equal parts', say:'two parts of three', prompt:'Shade ⅔ of the bar'},
+  // 16 — two that make a whole (new type, multi-step)
+  {mechanic:'pickpair', friends:1, targetSum:1, label:'1', line:'¼ + ¾ = 1', say:'two parts that make a whole', prompt:'Tap TWO that make 1 whole',
+    options:[ {value:0.25,type:'bar',params:{parts:4,shaded:1}},
+              {value:0.75,type:'bar',params:{parts:4,shaded:3}},
+              {value:0.5, type:'bar',params:{parts:2,shaded:1}},
+              {value:0.3333,type:'bar',params:{parts:3,shaded:1}} ]},
+  // 17 — recognise 2/5 (pick, FOUR options, fifths)
+  {mechanic:'choose', friends:1, label:'2/5', line:'2 of 5 equal parts', say:'two parts of five', prompt:'Which shows 2/5?',
+    options:[ {type:'bar', params:{parts:5,shaded:2}, correct:true},
+              {type:'bar', params:{parts:5,shaded:1}},
+              {type:'bar', params:{parts:5,shaded:3}},
+              {type:'bar', params:{parts:5,shaded:4}} ]},
+  // 18 — number line 3/8 (make, eighths — fine precision)
+  {mechanic:'numberline', friends:1, label:'3/8', target:0.375, steps:8, line:'3/8 is between ¼ and ½', say:'three parts of eight', prompt:'Hop to 3/8'},
+  // 19 — order unlike fractions ⅖ < ½ < ⅗ (new type, close values, hard)
+  {mechanic:'order', friends:1, label:'✓', line:'⅖ < ½ < ⅗', prompt:'Order: small → big',
+    items:[ {value:0.4,type:'bar',params:{parts:5,shaded:2}},
+            {value:0.5,type:'bar',params:{parts:2,shaded:1}},
+            {value:0.6,type:'bar',params:{parts:5,shaded:3}} ]},
+  // 20 — odd one out: which is NOT a half (FOUR options, capstone reasoning)
+  {mechanic:'choose', friends:1, label:'⅗', line:'⅗ is NOT a half', prompt:'Tap the one that is NOT ½',
+    options:[ {type:'bar', params:{parts:5,shaded:3}, correct:true},
+              {type:'bar', params:{parts:2,shaded:1}},
+              {type:'bar', params:{parts:4,shaded:2}},
+              {type:'bar', params:{parts:6,shaded:3}} ]},
+];
+
+/* ---------- diverse character roster (United Colors of Benetton vibe) ---------- */
+const KIDS=[
+  {name:'Amara', skin:'#7a4a26', hair:'#241712', streak:'#ff2e88', outfit:'#13c4c9', accent:'#ffd23f',
+   style:'afropuffs', motif:'dots', earrings:true},
+  {name:'Theo',  skin:'#f1c27d', hair:'#1f6fd6', streak:'#2ee6ff', outfit:'#ff6b35', accent:'#2ee6ff',
+   style:'spiky',  motif:'star', freckles:true},
+  {name:'Mei',   skin:'#e8b07d', hair:'#7a3df0', streak:'#ff5fae', outfit:'#ffd23f', accent:'#a44dff',
+   style:'longbun', motif:'stripe', glasses:true},
+  {name:'Kofi',  skin:'#4f3017', hair:'#15100c', streak:'#2ee6ff', outfit:'#a44dff', accent:'#ff2e88',
+   style:'buzz',   motif:'zigzag', headband:'#ff2e88'},
+  {name:'Lola',  skin:'#ffdbac', hair:'#ff7a1a', streak:'#ffffff', outfit:'#ff2e88', accent:'#2ee6ff',
+   style:'ponytail', motif:'star', earrings:true},
+  {name:'Sam',   skin:'#c68642', hair:'#1f9f3a', streak:'#ffd23f', outfit:'#2ee6ff', accent:'#ff5fae',
+   style:'wavy',   motif:'stripe'},
+];
+
+/* ---------- state ---------- */
+const state={name:'Dara', age:null, level:0, locked:false};
+
+/* =====================================================================
+   AUDIO  — all synthesised with the Web Audio API (sfx + celebration).
+   No sound files needed, so the game stays a single offline file.
+   ===================================================================== */
+const AUDIO={ctx:null, muted:false};
+function audioInit(){
+  try{ if(!AUDIO.ctx) AUDIO.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  if(AUDIO.ctx && AUDIO.ctx.state==='suspended') AUDIO.ctx.resume();
+}
+function tone(freq,dur,type='sine',vol=.2,delay=0){
+  if(AUDIO.muted||!AUDIO.ctx) return;
+  const t0=AUDIO.ctx.currentTime+delay;
+  const o=AUDIO.ctx.createOscillator(), g=AUDIO.ctx.createGain();
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(AUDIO.ctx.destination);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(vol,t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.start(t0); o.stop(t0+dur+0.03);
+}
+function sfxPop(){ tone(540,0.11,'triangle',.25); tone(820,0.09,'sine',.14,0.04); }
+function sfxWhoosh(){
+  if(AUDIO.muted||!AUDIO.ctx) return;
+  const t0=AUDIO.ctx.currentTime, o=AUDIO.ctx.createOscillator(), g=AUDIO.ctx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(720,t0); o.frequency.exponentialRampToValueAtTime(170,t0+0.18);
+  g.gain.setValueAtTime(.16,t0); g.gain.exponentialRampToValueAtTime(.0001,t0+0.2);
+  o.connect(g); g.connect(AUDIO.ctx.destination); o.start(t0); o.stop(t0+0.22);
+}
+function sfxError(){ tone(300,0.18,'square',.14); tone(225,0.22,'square',.14,0.12); }
+
+/* ---- level-complete celebration: jingle + applause + crowd cheer ---- */
+function getNoise(){
+  if(!AUDIO.ctx) return null;
+  if(!AUDIO.noise){
+    const sr=AUDIO.ctx.sampleRate, len=Math.floor(sr*1.2), b=AUDIO.ctx.createBuffer(1,len,sr), d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+    AUDIO.noise=b;
+  }
+  return AUDIO.noise;
+}
+function jingle(){
+  // bright ascending fanfare + sparkle
+  tone(523.25,0.42,'triangle',.18,0.00);
+  tone(659.25,0.42,'triangle',.18,0.10);
+  tone(783.99,0.46,'triangle',.18,0.20);
+  tone(1046.50,0.60,'triangle',.20,0.30);
+  tone(1318.51,0.55,'sine',.12,0.44);
+}
+function clapAt(t,vol){
+  const buf=getNoise(); if(!buf) return;
+  const src=AUDIO.ctx.createBufferSource(); src.buffer=buf;
+  const bp=AUDIO.ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1400+Math.random()*1800; bp.Q.value=0.8;
+  const g=AUDIO.ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+0.07);
+  src.connect(bp); bp.connect(g); g.connect(AUDIO.ctx.destination);
+  src.start(t, Math.random()*0.4, 0.09);
+}
+function applause(){
+  if(AUDIO.muted||!AUDIO.ctx) return;
+  const t0=AUDIO.ctx.currentTime;
+  for(let i=0;i<48;i++){ clapAt(t0+0.05+Math.random()*1.05, 0.04+Math.random()*0.07); }
+}
+function cheerSwell(){
+  if(AUDIO.muted||!AUDIO.ctx) return;
+  const buf=getNoise(); if(!buf) return;
+  const t0=AUDIO.ctx.currentTime;
+  const src=AUDIO.ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+  const bp=AUDIO.ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=0.9;
+  bp.frequency.setValueAtTime(550,t0); bp.frequency.linearRampToValueAtTime(1300,t0+0.5); bp.frequency.linearRampToValueAtTime(800,t0+1.2);
+  const g=AUDIO.ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(0.07,t0+0.35); g.gain.linearRampToValueAtTime(0.0001,t0+1.25);
+  src.connect(bp); bp.connect(g); g.connect(AUDIO.ctx.destination);
+  src.start(t0); src.stop(t0+1.3);
+}
+function celebrate(){ if(AUDIO.muted||!AUDIO.ctx) return; jingle(); applause(); cheerSwell(); }
+/* personalised praise */
+const PRAISE=['Good job','Great','Amazing','Awesome','Brilliant','You did it','Superb','Way to go',
+  'Fantastic','Nice one','Wonderful','You\'re a star','Excellent','Bravo','Top work','Perfect'];
+function praiseMsg(){ return `${PRAISE[Math.floor(Math.random()*PRAISE.length)]}, ${state.name}!`; }
+
+/* ---------- geometry (viewBox 600x600) ---------- */
+const VB=600;
+const KID_Y=120;                       // character row centre
+const FOOD={cx:300, cy:360};
+const APPLE_R=132;
+const BAR={w:430, h:170};
+
+/* ---------- DOM ---------- */
+const screens={intro:document.getElementById('introScreen'),level:document.getElementById('levelScreen')};
+const stage=document.getElementById('stage');
+const promptEl=document.getElementById('prompt');
+const subhint=document.getElementById('subhint');
+const promptWrap=document.getElementById('promptWrap');
+const revealEl=document.getElementById('reveal');
+function show(name){Object.values(screens).forEach(s=>s.classList.remove('active'));screens[name].classList.add('active');}
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+  state.name='Dara';
+  audioInit();
+  startLevel(0);
+});
+document.getElementById('muteBtn').addEventListener('click',()=>{
+  AUDIO.muted=!AUDIO.muted;
+  document.getElementById('muteBtn').textContent = AUDIO.muted ? '🔇' : '🔊';
+  if(AUDIO.muted && 'speechSynthesis' in window){ try{window.speechSynthesis.cancel();}catch(e){} }
+});
+document.getElementById('nextBtn').addEventListener('click',()=>{
+  audioInit();
+  const n=state.level+1;
+  if(n<LEVELS.length) startLevel(n);
+  else finishGame();
+});
+
+/* =====================================================================
+   CHARACTERS
+   ===================================================================== */
+function makeChar(cx, def, s=1){
+  const g=el('g',{transform:`translate(${cx},${KID_Y}) scale(${s})`});
+  const OUT={stroke:'#0c0418','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'};
+  const H={fill:def.hair, ...OUT};
+  // soft glow disc behind
+  g.appendChild(el('ellipse',{cx:0,cy:8,rx:62,ry:64,fill:def.outfit,opacity:.16}));
+
+  // ---- BACK HAIR (behind head) ----
+  switch(def.style){
+    case 'afropuffs':
+      g.appendChild(el('circle',{cx:-46,cy:-30,r:26,...H}));
+      g.appendChild(el('circle',{cx:46,cy:-30,r:26,...H}));
+      g.appendChild(el('ellipse',{cx:0,cy:-6,rx:50,ry:50,...H})); break;
+    case 'longbun':
+      g.appendChild(el('path',{d:'M -48 -6 Q -60 70 -34 96 L 34 96 Q 60 70 48 -6 Z',...H}));
+      g.appendChild(el('circle',{cx:0,cy:-44,r:18,...H})); break;
+    case 'ponytail':
+      g.appendChild(el('ellipse',{cx:0,cy:-6,rx:48,ry:50,...H}));
+      g.appendChild(el('path',{d:'M 40 -24 Q 80 -6 70 50 Q 60 70 48 60 Q 60 20 36 -6 Z',...H})); break;
+    case 'wavy':
+      g.appendChild(el('path',{d:'M -50 -6 Q -56 56 -40 78 Q -30 64 -24 78 Q -14 64 0 78 Q 14 64 24 78 Q 34 64 40 78 Q 56 56 50 -6 Z',...H})); break;
+    case 'bob':
+      g.appendChild(el('path',{d:'M -50 -6 Q -54 60 -38 70 L 38 70 Q 54 60 50 -6 Z',...H})); break;
+    case 'spiky':
+      g.appendChild(el('ellipse',{cx:0,cy:-4,rx:48,ry:48,...H})); break;
+    default: /* buzz */
+      g.appendChild(el('ellipse',{cx:0,cy:-2,rx:46,ry:47,...H}));
+  }
+
+  // ---- OUTFIT / shoulders ----
+  g.appendChild(el('path',{d:'M -60 118 Q -56 56 0 52 Q 56 56 60 118 Z', fill:def.outfit, ...OUT}));
+  // collar
+  g.appendChild(el('path',{d:'M -18 56 L 0 80 L 18 56', fill:'none', stroke:def.accent,'stroke-width':5,'stroke-linecap':'round'}));
+  // motif on the shirt
+  if(def.motif==='star') g.appendChild(star(0,98,9,def.accent));
+  else if(def.motif==='dots'){[-22,0,22].forEach(mx=>g.appendChild(el('circle',{cx:mx,cy:96,r:5,fill:def.accent})));}
+  else if(def.motif==='stripe'){[88,100,112].forEach(my=>g.appendChild(el('line',{x1:-46,y1:my,x2:46,y2:my,stroke:def.accent,'stroke-width':4,opacity:.85})));}
+  else if(def.motif==='zigzag') g.appendChild(el('path',{d:'M -42 96 l 14 -12 l 14 12 l 14 -12 l 14 12',fill:'none',stroke:def.accent,'stroke-width':4}));
+
+  // neck + face
+  g.appendChild(el('rect',{x:-12,y:30,width:24,height:30,rx:9,fill:def.skin,...OUT}));
+  g.appendChild(el('ellipse',{cx:0,cy:2,rx:39,ry:43,fill:def.skin,...OUT}));
+  // ears
+  g.appendChild(el('circle',{cx:-38,cy:8,r:8,fill:def.skin,...OUT}));
+  g.appendChild(el('circle',{cx:38,cy:8,r:8,fill:def.skin,...OUT}));
+  if(def.earrings){g.appendChild(el('circle',{cx:-39,cy:19,r:4,fill:def.accent}));g.appendChild(el('circle',{cx:39,cy:19,r:4,fill:def.accent}));}
+
+  // ---- FRONT HAIR / bangs (over forehead) ----
+  switch(def.style){
+    case 'spiky':
+      g.appendChild(el('path',{d:'M -44 -2 L -36 -40 L -22 -16 L -8 -46 L 6 -16 L 20 -44 L 34 -14 L 44 -38 L 46 0 Q 0 -22 -44 -2 Z',...H})); break;
+    case 'buzz':
+      g.appendChild(el('path',{d:'M -44 -4 Q 0 -40 44 -4 Q 0 -22 -44 -4 Z',fill:def.hair,opacity:.92})); break;
+    case 'longbun':
+    case 'bob':
+      g.appendChild(el('path',{d:'M -44 -6 Q -40 -40 0 -36 Q 40 -40 44 -6 Q 20 -22 0 -20 Q -20 -22 -44 -6 Z',...H})); break;
+    case 'ponytail':
+      g.appendChild(el('path',{d:'M -44 -6 Q -36 -42 0 -34 Q 30 -40 44 -8 Q 18 -24 0 -22 Q -22 -22 -44 -6 Z',...H})); break;
+    case 'wavy':
+      g.appendChild(el('path',{d:'M -44 -4 Q -46 -38 -10 -34 Q 4 -44 16 -32 Q 42 -38 44 -4 Q 26 -20 12 -18 Q 2 -26 -8 -16 Q -24 -24 -44 -4 Z',...H})); break;
+    default: /* afropuffs front */
+      g.appendChild(el('path',{d:'M -42 -6 Q -38 -36 0 -32 Q 38 -36 42 -6 Q 18 -20 0 -18 Q -18 -20 -42 -6 Z',...H}));
+  }
+  // colored streak in the bangs
+  g.appendChild(el('path',{d:'M 6 -34 Q 28 -36 42 -6 Q 28 -20 14 -18 Q 8 -26 6 -34 Z', fill:def.streak, opacity:.92}));
+  // headband (optional)
+  if(def.headband) g.appendChild(el('path',{d:'M -44 -10 Q 0 -28 44 -10',fill:'none',stroke:def.headband,'stroke-width':7,'stroke-linecap':'round'}));
+
+  // eyebrows
+  const browL=el('path',{d:'',fill:'none',stroke:'#0c0418','stroke-width':3,'stroke-linecap':'round'});
+  const browR=el('path',{d:'',fill:'none',stroke:'#0c0418','stroke-width':3,'stroke-linecap':'round'});
+  g.appendChild(browL);g.appendChild(browR);
+  // eyes
+  for(const ex of [-15,15]){
+    g.appendChild(el('ellipse',{cx:ex,cy:4,rx:9,ry:11,fill:'#fff',stroke:'#0c0418','stroke-width':2}));
+    g.appendChild(el('circle',{cx:ex,cy:5,r:6,fill:'#1a0f2b'}));
+    g.appendChild(el('circle',{cx:ex,cy:5,r:6,fill:def.accent,opacity:.45}));
+    g.appendChild(el('circle',{cx:ex+2,cy:2,r:2.2,fill:'#fff'}));
+  }
+  // glasses (optional)
+  if(def.glasses){
+    const gl={fill:'none',stroke:'#0c0418','stroke-width':3};
+    g.appendChild(el('rect',{x:-27,y:-4,width:24,height:18,rx:6,...gl}));
+    g.appendChild(el('rect',{x:3,y:-4,width:24,height:18,rx:6,...gl}));
+    g.appendChild(el('line',{x1:-3,y1:5,x2:3,y2:5,stroke:'#0c0418','stroke-width':3}));
+  }
+  // freckles (optional)
+  if(def.freckles){[-26,-20,-14,14,20,26].forEach((fx,i)=>g.appendChild(el('circle',{cx:fx,cy:16+(i%2?2:0),r:1.6,fill:'#a5673f',opacity:.8})));}
+  // nose + blush + mouth
+  g.appendChild(el('path',{d:'M -2 12 Q 0 17 3 13',fill:'none',stroke:'#0008','stroke-width':2,'stroke-linecap':'round',opacity:.4}));
+  g.appendChild(el('ellipse',{cx:-24,cy:21,rx:8,ry:5,fill:'#ff6f9c',opacity:.4}));
+  g.appendChild(el('ellipse',{cx:24,cy:21,rx:8,ry:5,fill:'#ff6f9c',opacity:.4}));
+  const mouth=el('path',{d:'',fill:'#6b1f3a',stroke:'#0c0418','stroke-width':2.5,'stroke-linejoin':'round'});
+  g.appendChild(mouth);
+  g._mouth=mouth; g._browL=browL; g._browR=browR;
+  setMood(g,'neutral');
+  return g;
+}
+function setMood(g,mood){
+  const m=g._mouth;
+  if(mood==='happy'){m.setAttribute('d','M -15 24 Q 0 44 15 24 Q 0 30 -15 24 Z'); m.setAttribute('fill','#7a1f42');
+     g._browL.setAttribute('d','M -26 -10 Q -18 -14 -10 -11'); g._browR.setAttribute('d','M 10 -11 Q 18 -14 26 -10');}
+  else if(mood==='sad'){m.setAttribute('d','M -12 33 Q 0 23 12 33'); m.setAttribute('fill','none');
+     g._browL.setAttribute('d','M -26 -6 Q -18 -12 -10 -12'); g._browR.setAttribute('d','M 10 -12 Q 18 -12 26 -6');}
+  else if(mood==='greedy'){m.setAttribute('d','M -12 26 Q 4 36 15 23 Q 2 28 -12 26 Z'); m.setAttribute('fill','#7a1f42');
+     g._browL.setAttribute('d','M -26 -8 Q -18 -13 -10 -8'); g._browR.setAttribute('d','M 10 -10 Q 18 -7 26 -11');}
+  else {m.setAttribute('d','M -10 26 Q 0 31 10 26'); m.setAttribute('fill','none');
+     g._browL.setAttribute('d','M -26 -8 Q -18 -12 -10 -9'); g._browR.setAttribute('d','M 10 -9 Q 18 -12 26 -8');}
+}
+function bounce(g){
+  const base=g.getAttribute('transform');
+  g.animate([{transform:base},{transform:base+' translateY(-22px)'},{transform:base}],
+    {duration:520,iterations:2,easing:'ease-in-out'});
+}
+function star(cx,cy,r,fill){
+  let d='';for(let i=0;i<10;i++){const ang=-Math.PI/2+i*Math.PI/5;const rr=i%2?r*0.45:r;
+    d+=(i?'L':'M')+(cx+rr*Math.cos(ang)).toFixed(1)+' '+(cy+rr*Math.sin(ang)).toFixed(1)+' ';}
+  return el('path',{d:d+'Z',fill});
+}
+
+/* =====================================================================
+   FOOD
+   ===================================================================== */
+function appleWhole(){
+  const g=el('g',{transform:`translate(${FOOD.cx},${FOOD.cy})`});
+  g.appendChild(el('ellipse',{cx:6,cy:14,rx:APPLE_R*0.78,ry:APPLE_R*0.5,fill:'#000',opacity:.22})); // shadow under
+  g.appendChild(el('rect',{x:-6,y:-APPLE_R-18,width:12,height:34,rx:6,fill:'#7a4a22'}));
+  g.appendChild(el('path',{d:`M 6 ${-APPLE_R} q 48 -16 56 16 q -46 12 -56 -16 Z`,fill:'#39b54a',stroke:'#1f7a30','stroke-width':3}));
+  g.appendChild(el('circle',{cx:0,cy:0,r:APPLE_R,fill:'url(#appleGrad)',stroke:'#b81e2c','stroke-width':5}));
+  g.appendChild(el('ellipse',{cx:-APPLE_R*0.4,cy:-APPLE_R*0.4,rx:24,ry:38,fill:'#fff',opacity:.25,transform:`rotate(-25 ${-APPLE_R*0.4} ${-APPLE_R*0.4})`}));
+  return g;
+}
+function appleHalf(side, scaleX=1){
+  // side: -1 left, +1 right
+  const g=el('g',{});
+  const R=APPLE_R, sweep= side<0?0:1;
+  const skin=el('path',{d:`M 0 ${-R} A ${R} ${R} 0 0 ${sweep} 0 ${R} Z`,fill:'url(#appleGrad)',stroke:'#b81e2c','stroke-width':5});
+  g.appendChild(skin);
+  // flesh face (the flat cut)
+  g.appendChild(el('path',{d:`M 0 ${-R+6} Q ${side*10} 0 0 ${R-6} L 0 ${-R+6} Z`,fill:'#fff6df'}));
+  g.appendChild(el('ellipse',{cx:side*22,cy:-8,rx:7,ry:13,fill:'#fff6df'}));
+  // seeds
+  g.appendChild(el('path',{d:`M ${side*16} -18 q ${side*9} 14 0 26 q ${side*-9} -12 0 -26 Z`,fill:'#5a3a1c'}));
+  g.appendChild(el('path',{d:`M ${side*16} 16 q ${side*9} 12 0 24 q ${side*-9} -10 0 -24 Z`,fill:'#5a3a1c'}));
+  if(scaleX!==1) g.setAttribute('transform',`scale(${scaleX},1)`);
+  return g;
+}
+function barWhole(){
+  const g=el('g',{transform:`translate(${FOOD.cx},${FOOD.cy})`});
+  const w=BAR.w,h=BAR.h;
+  g.appendChild(el('rect',{x:-w/2+8,y:h/2-6,width:w-16,height:20,rx:10,fill:'#000',opacity:.22}));
+  g.appendChild(el('rect',{x:-w/2,y:-h/2,width:w,height:h,rx:18,fill:'url(#barGrad)',stroke:'#3a2012','stroke-width':5}));
+  // chunk grid
+  for(let i=1;i<6;i++) g.appendChild(el('line',{x1:-w/2+i*w/6,y1:-h/2+8,x2:-w/2+i*w/6,y2:h/2-8,stroke:'#3a2012',opacity:.35,'stroke-width':3}));
+  g.appendChild(el('line',{x1:-w/2+8,y1:0,x2:w/2-8,y2:0,stroke:'#3a2012',opacity:.35,'stroke-width':3}));
+  g.appendChild(el('rect',{x:-w/2+8,y:-h/2+8,width:w-16,height:14,rx:7,fill:'#fff',opacity:.18}));
+  return g;
+}
+function barPiece(x0,x1){
+  const g=el('g',{});
+  const w=x1-x0,h=BAR.h;
+  const r=el('rect',{x:x0,y:FOOD.cy-h/2,width:w,height:h,rx:14,fill:'url(#barGrad)',stroke:'#3a2012','stroke-width':5});
+  g.appendChild(r);
+  g.appendChild(el('rect',{x:x0+5,y:FOOD.cy-h/2+6,width:Math.max(2,w-10),height:12,rx:6,fill:'#fff',opacity:.18}));
+  return g;
+}
+function pieceLabel(cx,cy,txt,size=40){
+  const t=el('text',{x:cx,y:cy+size*0.34,'text-anchor':'middle','font-size':size,'font-family':"'Black Han Sans',sans-serif",
+    fill:'#fff',stroke:'#0c0418','stroke-width':Math.max(4,size*0.13),'paint-order':'stroke',opacity:0});
+  t.textContent=txt; t._lab=true; return t;
+}
+
+/* =====================================================================
+   ENGINE  (data-driven; each level names a MECHANIC plugin)
+   ===================================================================== */
+let scene, kids=[], cast=[], kidXs=[], curMech=null;
+let guides=[], cutsG=null, cuts=[], required=0, foodBounds=null, liveLine=null, foodGEl=null;
+let dragging=false, startPt=null, blocks=[], claimed=0;
+
+function pickKids(n){
+  const a=[...KIDS];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a.slice(0,n);
+}
+function spread(n){
+  if(n<=1) return [300];
+  const lo=130, hi=470, out=[];
+  for(let i=0;i<n;i++) out.push(lo+(hi-lo)*i/(n-1));
+  return out;
+}
+function snapTo(v,steps){return Math.round(v*steps)/steps;}
+const clamp01=v=>Math.max(0,Math.min(1,v));
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+// shared layout for card-based puzzles (handles 2-4 options)
+function cardLayout(n){
+  const boxW=n>=4?122:150, gap=n>=4?16:26, boxH=150, cy=362;
+  const totalW=n*boxW+(n-1)*gap, startX=300-totalW/2+boxW/2;
+  return {boxW,boxH,gap,cy,xFor:i=>startX+i*(boxW+gap)};
+}
+// build a tappable option card (panel + visualisation), returns the <g>
+function optionCard(cxp,L,type,params){
+  const card=el('g',{style:'cursor:pointer'});
+  const panel=el('rect',{x:cxp-L.boxW/2,y:L.cy-L.boxH/2,width:L.boxW,height:L.boxH,rx:18,fill:'rgba(255,255,255,0.05)',stroke:'#ffffff','stroke-width':3,'stroke-opacity':.35});
+  card.appendChild(panel);
+  renderCard(type,params,{cx:cxp,cy:L.cy,w:L.boxW-30,h:L.boxH-30},card);
+  card._panel=panel;
+  return card;
+}
+function cardStroke(card,color,op){ card._panel.setAttribute('stroke',color); card._panel.setAttribute('stroke-opacity',op); }
+const shakeKf=[{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}];
+
+function startLevel(idx){
+  state.level=idx; state.locked=false;
+  kids=[]; guides=[]; cuts=[]; blocks=[]; claimed=0; dragging=false;
+  const lv=LEVELS[idx];
+  show('level');
+  revealEl.classList.remove('show'); promptWrap.style.display='';
+  promptEl.textContent=lv.prompt;
+  document.getElementById('lvTag').textContent='Stage '+(idx+1);
+  const dots=document.getElementById('dots'); dots.innerHTML='';
+  LEVELS.forEach((_,i)=>{const d=document.createElement('span');d.className='dot'+(i<=idx?' on':'');dots.appendChild(d);});
+
+  stage.innerHTML='';
+  scene=el('svg',{class:'scene',viewBox:`0 0 ${VB} ${VB}`,preserveAspectRatio:'xMidYMid meet'});
+  scene.appendChild(buildDefs());
+
+  // friends across the top (shared stage service)
+  const fr=lv.friends || lv.parts || 1;
+  const xs=spread(fr); kidXs=xs; cast=pickKids(fr);
+  for(let i=0;i<fr;i++){const k=makeChar(xs[i],cast[i], fr>=4?0.82:0.95); kids.push(k); scene.appendChild(k);}
+
+  // hand the middle of the screen to the level's mechanic
+  curMech=MECHANICS[lv.mechanic];
+  curMech.mount(lv);
+
+  stage.appendChild(scene);
+  bindInput();
+
+  // hide any leftover praise banner when a fresh level loads
+  const tc=document.getElementById('topCongrats'); tc.classList.remove('show'); tc.textContent='';
+}
+
+/* ---- shared outcomes (reused by every mechanic) ---- */
+function winLevel(lv){
+  state.locked=true;
+  celebrate();
+  kids.forEach(k=>{setMood(k,'happy'); bounce(k);});
+  setTimeout(()=>{ launchConfetti(); promptWrap.style.display='none'; showReveal(lv); }, 560);
+}
+function missLevel(lv, react, msg, hint){
+  state.locked=true;
+  sfxError();
+  if(react) react();
+  promptEl.textContent=msg||'Try again';
+  subhint.textContent=hint||'';
+  setTimeout(()=>{ state.locked=false; startLevel(state.level); }, 1650);
+}
+
+/* ---- pointer input layer (delegates to the active mechanic) ---- */
+function toSvg(clientX,clientY){const r=scene.getBoundingClientRect();return {x:(clientX-r.left)/r.width*VB,y:(clientY-r.top)/r.height*VB};}
+function ptFrom(e){
+  if(e.touches&&e.touches[0]) return toSvg(e.touches[0].clientX,e.touches[0].clientY);
+  if(e.changedTouches&&e.changedTouches[0]) return toSvg(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+  return toSvg(e.clientX,e.clientY);
+}
+function bindInput(){
+  if(!curMech.down) return;
+  scene.addEventListener('mousedown',e=>{if(!state.locked)curMech.down(ptFrom(e),e);});
+  scene.addEventListener('mousemove',e=>{if(!state.locked&&curMech.move)curMech.move(ptFrom(e),e);});
+  scene.addEventListener('touchstart',e=>{if(!state.locked)curMech.down(ptFrom(e),e);},{passive:false});
+  scene.addEventListener('touchmove',e=>{if(!state.locked&&curMech.move)curMech.move(ptFrom(e),e);},{passive:false});
+}
+window.addEventListener('mouseup',e=>{if(curMech&&curMech.up&&!state.locked)curMech.up(ptFrom(e),e);});
+window.addEventListener('touchend',e=>{if(curMech&&curMech.up&&!state.locked)curMech.up(ptFrom(e),e);});
+
+function buildDefs(){
+  const defs=el('defs',{});
+  const ag=el('radialGradient',{id:'appleGrad',cx:'40%',cy:'35%',r:'75%'});
+  ag.appendChild(el('stop',{offset:'0%','stop-color':'#ff7a6e'}));
+  ag.appendChild(el('stop',{offset:'55%','stop-color':'#ff3b3b'}));
+  ag.appendChild(el('stop',{offset:'100%','stop-color':'#c01028'}));
+  defs.appendChild(ag);
+  const bg=el('linearGradient',{id:'barGrad',x1:'0',y1:'0',x2:'0',y2:'1'});
+  bg.appendChild(el('stop',{offset:'0%','stop-color':'#6b3d22'}));
+  bg.appendChild(el('stop',{offset:'50%','stop-color':'#4e2a16'}));
+  bg.appendChild(el('stop',{offset:'100%','stop-color':'#3a1d0d'}));
+  defs.appendChild(bg);
+  const cg=el('linearGradient',{id:'cutGrad',x1:'0',y1:'0',x2:'0',y2:'1'});
+  cg.appendChild(el('stop',{offset:'0%','stop-color':'#2ee6ff'}));
+  cg.appendChild(el('stop',{offset:'100%','stop-color':'#ff2e88'}));
+  defs.appendChild(cg);
+  const jg=el('linearGradient',{id:'juiceGrad',x1:'0',y1:'0',x2:'0',y2:'1'});
+  jg.appendChild(el('stop',{offset:'0%','stop-color':'#ffb02e'}));
+  jg.appendChild(el('stop',{offset:'100%','stop-color':'#ff4d6d'}));
+  defs.appendChild(jg);
+  const f=el('filter',{id:'glow',x:'-50%',y:'-50%',width:'200%',height:'200%'});
+  f.appendChild(el('feGaussianBlur',{stdDeviation:'4',result:'b'}));
+  const mg=el('feMerge',{});mg.appendChild(el('feMergeNode',{in:'b'}));mg.appendChild(el('feMergeNode',{in:'SourceGraphic'}));
+  f.appendChild(mg); defs.appendChild(f);
+  return defs;
+}
+
+/* =====================================================================
+   MECHANICS REGISTRY
+   ===================================================================== */
+const MECHANICS={};
+
+/* ---- MECHANIC: slice — cut a round apple into equal halves ---- */
+MECHANICS.slice={
+  mount(lv){
+    subhint.textContent='Swipe down the middle ↓';
+    const foodG=el('g',{}); foodG.appendChild(appleWhole());
+    foodBounds={left:FOOD.cx-APPLE_R,right:FOOD.cx+APPLE_R,top:FOOD.cy-APPLE_R,bottom:FOOD.cy+APPLE_R};
+    scene.appendChild(foodG); foodGEl=foodG;
+    required=(lv.parts||2)-1; cuts=[];
+    const gx=FOOD.cx;
+    const gd=el('line',{x1:gx,y1:foodBounds.top-14,x2:gx,y2:foodBounds.bottom+14,stroke:'#fff','stroke-width':3,'stroke-dasharray':'7 9',opacity:.28});
+    gd.animate([{opacity:.12},{opacity:.4},{opacity:.12}],{duration:1500,iterations:Infinity});
+    scene.appendChild(gd); guides=[gd];
+    cutsG=el('g',{}); scene.appendChild(cutsG);
+    liveLine=el('line',{x1:0,y1:0,x2:0,y2:0,stroke:'url(#cutGrad)','stroke-width':6,'stroke-linecap':'round',opacity:0,filter:'url(#glow)'});
+    scene.appendChild(liveLine);
+  },
+  down(p,e){e.preventDefault(); dragging=true; startPt=p;},
+  move(p,e){if(!dragging)return; e.preventDefault();
+    liveLine.setAttribute('x1',startPt.x);liveLine.setAttribute('y1',startPt.y);
+    liveLine.setAttribute('x2',p.x);liveLine.setAttribute('y2',p.y);liveLine.setAttribute('opacity',.9);},
+  up(p,e){if(!dragging)return; dragging=false; liveLine.setAttribute('opacity',0); registerSwipe(startPt,p);}
+};
+function registerSwipe(a,b){
+  if(!a||!b) return;
+  const dx=Math.abs(b.x-a.x), dy=Math.abs(b.y-a.y), midX=(a.x+b.x)/2;
+  const verticalEnough = dy>=(foodBounds.bottom-foodBounds.top)*0.55 && dx<78;
+  const crosses = Math.min(a.y,b.y) < FOOD.cy && Math.max(a.y,b.y) > FOOD.cy;
+  const inRange = midX>foodBounds.left+6 && midX<foodBounds.right-6;
+  if(!(verticalEnough && crosses && inRange)){ wobble(); return; }
+  if(cuts.some(c=>Math.abs(c-midX)<26)) return;
+  if(cuts.length>=required) return;
+  addCut(midX);
+}
+function addCut(x){
+  cuts.push(x); sfxWhoosh();
+  const ln=el('line',{x1:x,y1:foodBounds.top-12,x2:x,y2:foodBounds.bottom+12,stroke:'url(#cutGrad)','stroke-width':6,'stroke-linecap':'round',filter:'url(#glow)'});
+  cutsG.appendChild(ln);
+  const streak=el('line',{x1:x,y1:foodBounds.top-30,x2:x,y2:foodBounds.bottom+30,stroke:'#fff','stroke-width':8,opacity:.9});
+  scene.appendChild(streak); streak.animate([{opacity:.9},{opacity:0}],{duration:280}).onfinish=()=>streak.remove();
+  if(cuts.length===required) setTimeout(sliceEvaluate, 220);
+}
+function wobble(){
+  subhint.textContent='Swipe straight down through it ↓';
+  stage.animate([{transform:'translateX(0)'},{transform:'translateX(-7px)'},{transform:'translateX(7px)'},{transform:'translateX(0)'}],{duration:300});
+}
+function sliceEvaluate(){
+  state.locked=true;
+  guides.forEach(g=>g.remove());
+  const lv=LEVELS[state.level];
+  const x=cuts[0];
+  const p=(x-(FOOD.cx-APPLE_R))/(2*APPLE_R);          // left piece as a fraction of the apple
+  const segs=[{frac:p,side:-1},{frac:1-p,side:1}];
+  const fair=segs.every(s=>Math.abs(s.frac-0.5)<=0.5*0.22);
+  splitAndDeal(lv,segs,fair);
+  if(fair) winLevel(lv);
+  else{
+    let mini=0,maxi=0; segs.forEach((s,i)=>{if(s.frac<segs[mini].frac)mini=i; if(s.frac>segs[maxi].frac)maxi=i;});
+    missLevel(lv, ()=>kids.forEach((k,i)=>setMood(k,i===mini?'sad':i===maxi?'greedy':'neutral')), 'NOT FAIR!', 'Make the halves EQUAL ↺');
+  }
+}
+function splitAndDeal(lv,segs,fair){
+  const food=foodGEl;
+  food.animate([{opacity:1},{opacity:0}],{duration:200,fill:'forwards'});
+  setTimeout(()=>food.remove(),210);
+  cutsG.innerHTML='';
+  const dealXs=[FOOD.cx-150, FOOD.cx+150], ty=430;
+  segs.forEach((s,i)=>{
+    const piece=el('g',{transform:`translate(${FOOD.cx},${FOOD.cy})`});
+    piece.appendChild(appleHalf(s.side, fair?1:Math.max(.4,Math.min(1.5,s.frac*2))));
+    piece.appendChild(pieceLabel(s.side*62,0, fair?lv.label:'', 78));
+    scene.appendChild(piece);
+    const tx=dealXs[i];
+    piece.animate([{transform:`translate(${FOOD.cx}px,${FOOD.cy}px)`},{transform:`translate(${tx}px,${ty}px)`}],
+      {duration:650,easing:'cubic-bezier(.2,1,.3,1)',fill:'forwards'});
+    setTimeout(()=>piece.setAttribute('transform',`translate(${tx},${ty})`),650);
+    if(fair){const labs=piece.querySelectorAll('text'); setTimeout(()=>labs.forEach(t=>t.animate([{opacity:0},{opacity:1}],{duration:400,fill:'forwards'})),480);}
+  });
+}
+
+/* ---- MECHANIC: tap — chocolate bar pre-split into equal blocks ---- */
+MECHANICS.tap={
+  mount(lv){
+    subhint.textContent='Tap to break off a piece';
+    foodBounds={left:FOOD.cx-BAR.w/2,right:FOOD.cx+BAR.w/2,top:FOOD.cy-BAR.h/2,bottom:FOOD.cy+BAR.h/2};
+    buildBarBlocks(lv);
+  }
+};
+function buildBarBlocks(lv){
+  // One WHOLE bar: contiguous segments with score lines. Tapping a segment breaks it off.
+  const n=lv.parts, h=BAR.h;
+  const left=foodBounds.left, top=FOOD.cy-h/2, bw=BAR.w/n;
+  scene.appendChild(el('rect',{x:left,y:FOOD.cy+h/2-6,width:BAR.w,height:18,rx:9,fill:'#000',opacity:.2}));
+  for(let i=0;i<n;i++){
+    const x0=left+i*bw, cxp=x0+bw/2;
+    const block=el('g',{style:'cursor:pointer'});
+    // square corners except the two outer ends -> reads as one solid bar
+    // each segment is ONE clear part (divider between parts comes from the shared edge stroke)
+    const rect=el('rect',{x:x0,y:top,width:bw,height:h,fill:'url(#barGrad)',stroke:'#2a160a','stroke-width':4});
+    block.appendChild(rect);
+    block.appendChild(el('rect',{x:x0+8,y:top+8,width:bw-16,height:15,rx:7,fill:'#fff',opacity:.16}));
+    const lab=pieceLabel(cxp,FOOD.cy,lv.label);
+    block.appendChild(lab);
+    block._i=i; block._cx=cxp; block._rect=rect; block._lab=lab; block._claimed=false;
+    const deal=e=>{e.preventDefault(); e.stopPropagation(); dealBlock(block,lv);};
+    block.addEventListener('click',deal);
+    block.addEventListener('touchstart',deal,{passive:false});
+    scene.appendChild(block);
+    blocks.push(block);
+  }
+  // single outer outline so the segments read as ONE whole bar
+  const outline=el('rect',{x:left,y:top,width:BAR.w,height:h,rx:16,fill:'none',stroke:'#3a2012','stroke-width':5});
+  scene.appendChild(outline); blocks._outline=outline;
+  // gentle pulse inviting a tap
+  const hintGlow=el('rect',{x:left+2,y:top+2,width:BAR.w-4,height:h-4,rx:14,fill:'none',stroke:cast[0].accent,'stroke-width':4});
+  hintGlow.animate([{opacity:.1},{opacity:.7},{opacity:.1}],{duration:1500,iterations:Infinity});
+  scene.appendChild(hintGlow); blocks._hint=hintGlow;
+}
+function dealBlock(block,lv){
+  if(block._claimed||state.locked) return;
+  // first break: drop the whole-bar outline + pulse so pieces detach cleanly
+  if(blocks._hint){blocks._hint.remove(); blocks._hint=null;}
+  if(blocks._outline){blocks._outline.remove(); blocks._outline=null;}
+  block._claimed=true; claimed++;
+  sfxPop();
+  const i=block._i, tx=kidXs[i], ty=KID_Y+150;
+  block._rect.setAttribute('rx',12);
+  block._rect.setAttribute('stroke',cast[i].accent);
+  block._rect.setAttribute('stroke-width',5);
+  block.animate([{transform:'translate(0px,0px)'},{transform:`translate(${tx-block._cx}px,${ty-FOOD.cy}px)`}],
+    {duration:600,easing:'cubic-bezier(.2,1,.3,1)',fill:'forwards'});
+  block._lab.animate([{opacity:0},{opacity:1}],{duration:380,delay:260,fill:'forwards'});
+  setMood(kids[i],'happy'); bounce(kids[i]);
+  const remaining=lv.parts-claimed;
+  subhint.textContent = remaining>0 ? `${remaining} more to share` : '';
+  if(claimed===lv.parts) winLevel(lv);
+}
+
+/* ---- MECHANIC: numberline — a fraction is a NUMBER with a position ---- */
+const NL={x0:90,x1:510,y:380};
+const nlX=v=>NL.x0+v*(NL.x1-NL.x0);
+const nlV=x=>clamp01((x-NL.x0)/(NL.x1-NL.x0));
+MECHANICS.numberline={
+  mount(lv){
+    subhint.textContent='Drag the star to '+lv.label;
+    this.steps=lv.steps; this.target=lv.target; this.val=0; this.dragging=false;
+    const g=el('g',{}); scene.appendChild(g);
+    g.appendChild(el('line',{x1:NL.x0,y1:NL.y,x2:NL.x1,y2:NL.y,stroke:'#2ee6ff','stroke-width':7,'stroke-linecap':'round',filter:'url(#glow)'}));
+    [[0,'0'],[1,'1']].forEach(([v,t])=>{
+      g.appendChild(el('line',{x1:nlX(v),y1:NL.y-18,x2:nlX(v),y2:NL.y+18,stroke:'#fff','stroke-width':5,'stroke-linecap':'round'}));
+      const tx=el('text',{x:nlX(v),y:NL.y+52,'text-anchor':'middle','font-size':32,'font-family':"'Black Han Sans',sans-serif",fill:'#fff'}); tx.textContent=t; g.appendChild(tx);
+    });
+    for(let i=1;i<this.steps;i++){const x=nlX(i/this.steps);
+      g.appendChild(el('line',{x1:x,y1:NL.y-10,x2:x,y2:NL.y+10,stroke:'#fff',opacity:.5,'stroke-width':3}));}
+    // NOTE: no goal flag — the player must judge where the fraction sits.
+    // draggable marker
+    const m=el('g',{style:'cursor:pointer'}); this.marker=m;
+    m.appendChild(el('circle',{cx:0,cy:0,r:27,fill:'url(#cutGrad)',stroke:'#fff','stroke-width':4,filter:'url(#glow)'}));
+    m.appendChild(star(0,0,16,'#fff'));
+    const lab=el('text',{x:0,y:-40,'text-anchor':'middle','font-size':36,'font-family':"'Black Han Sans',sans-serif",fill:'#fff',stroke:'#0c0418','stroke-width':4,'paint-order':'stroke',opacity:0}); lab.textContent=lv.label;
+    m.appendChild(lab); this.mlab=lab;
+    g.appendChild(m); this.place(0);
+  },
+  place(v){this.val=v; this.marker.setAttribute('transform',`translate(${nlX(v)},${NL.y})`);},
+  down(p,e){if(Math.abs(p.y-NL.y)>120)return; e.preventDefault(); this.dragging=true; this.place(snapTo(nlV(p.x),this.steps));},
+  move(p,e){if(!this.dragging)return; e.preventDefault(); this.place(snapTo(nlV(p.x),this.steps));},
+  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=LEVELS[state.level];
+    if(Math.abs(this.val-this.target)<1e-6){ this.mlab.setAttribute('opacity',1); winLevel(lv); }
+    else missLevel(lv, ()=>{setMood(kids[0],'sad');
+      this.marker.animate([{transform:`translate(${nlX(this.val)-9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)+9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)}px,${NL.y}px)`}],{duration:320});},
+      'Not there yet', `Find ${lv.label} between 0 and 1`);}
+};
+
+/* ---- MECHANIC: fill — pour to a fraction (measurement model) ---- */
+const GL={x0:222,x1:378,y0:248,y1:470,inset:10};
+const glInnerTop=GL.y0+GL.inset, glInnerBot=GL.y1-GL.inset, glInnerH=glInnerBot-glInnerTop;
+const glYForF=f=>glInnerBot-f*glInnerH;
+const glFForY=y=>clamp01((glInnerBot-y)/glInnerH);
+MECHANICS.fill={
+  mount(lv){
+    subhint.textContent='Drag up to fill it';
+    this.steps=lv.steps; this.target=lv.target; this.val=0; this.dragging=false;
+    const g=el('g',{}); scene.appendChild(g);
+    // glass interior backdrop
+    g.appendChild(el('rect',{x:GL.x0,y:GL.y0,width:GL.x1-GL.x0,height:GL.y1-GL.y0,rx:20,fill:'#ffffff',opacity:.05}));
+    // liquid (grows from the bottom)
+    this.liquid=el('rect',{x:GL.x0+GL.inset,y:glYForF(0),width:(GL.x1-GL.x0)-2*GL.inset,height:0,rx:8,fill:'url(#juiceGrad)'});
+    g.appendChild(this.liquid);
+    // measuring ticks at quarters (NOT the answer — the player must judge the level)
+    for(let i=1;i<this.steps;i++){const y=glYForF(i/this.steps);
+      g.appendChild(el('line',{x1:GL.x1-26,y1:y,x2:GL.x1,y2:y,stroke:'#fff',opacity:.45,'stroke-width':3}));}
+    // glass outline + shine on top
+    g.appendChild(el('rect',{x:GL.x0,y:GL.y0,width:GL.x1-GL.x0,height:GL.y1-GL.y0,rx:20,fill:'none',stroke:'#bdefff','stroke-width':6}));
+    g.appendChild(el('rect',{x:GL.x0+12,y:GL.y0+14,width:14,height:GL.y1-GL.y0-40,rx:7,fill:'#fff',opacity:.18}));
+    // drag knob hint on the right
+    this.knob=el('g',{style:'cursor:pointer'});
+    this.knob.appendChild(el('circle',{cx:GL.x1,cy:glYForF(0),r:15,fill:'#2ee6ff',stroke:'#fff','stroke-width':3,filter:'url(#glow)'}));
+    g.appendChild(this.knob);
+    this.knobC=this.knob.querySelector('circle');
+    this.setFill(0);
+  },
+  setFill(f){this.val=f; const y=glYForF(f); this.liquid.setAttribute('y',y); this.liquid.setAttribute('height',glInnerBot-y); this.knobC.setAttribute('cy',y);},
+  inGlass(p){return p.x>GL.x0-55 && p.x<GL.x1+55 && p.y>GL.y0-30 && p.y<GL.y1+30;},
+  down(p,e){if(!this.inGlass(p))return; e.preventDefault(); this.dragging=true; this.setFill(snapTo(glFForY(p.y),this.steps));},
+  move(p,e){if(!this.dragging)return; e.preventDefault(); this.setFill(snapTo(glFForY(p.y),this.steps));},
+  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=LEVELS[state.level];
+    if(Math.abs(this.val-this.target)<1e-6) winLevel(lv);
+    else missLevel(lv, ()=>setMood(kids[0], this.val>this.target?'greedy':'sad'),
+      this.val>this.target?'Too much!':'Not enough', `Fill it to ${lv.label}`);}
+};
+
+/* ---- MECHANIC: choose — pick the right one from similar options ---- */
+MECHANICS.choose={
+  mount(lv){
+    subhint.textContent=lv.q || 'Tap the right one';
+    const opts=shuffle(lv.options.map(o=>o));   // shuffle so the answer isn't always first
+    const n=opts.length, L=cardLayout(n);
+    opts.forEach((opt,i)=>{
+      const card=optionCard(L.xFor(i),L,opt.type,opt.params);
+      card._correct=!!opt.correct;
+      const pick=e=>{e.preventDefault(); e.stopPropagation(); choosePick(card,lv);};
+      card.addEventListener('click',pick); card.addEventListener('touchstart',pick,{passive:false});
+      scene.appendChild(card);
+    });
+  }
+};
+function choosePick(card,lv){
+  if(state.locked||card._done) return;
+  if(card._correct){
+    state.locked=true; cardStroke(card,'#39e08a',1);
+    card.animate([{transform:'translateY(0)'},{transform:'translateY(-12px)'},{transform:'translateY(0)'}],{duration:380});
+    winLevel(lv);
+  } else {
+    card._done=true; sfxError(); cardStroke(card,'#ff3b6b',1);
+    card.animate(shakeKf,{duration:300});
+    if(kids[0]) setMood(kids[0],'sad');
+    subhint.textContent='Not that one — try again!';
+    setTimeout(()=>{cardStroke(card,'#ffffff',.35); card._done=false; if(kids[0]) setMood(kids[0],'neutral');},800);
+  }
+}
+
+/* ---- option-card renderers (the variety of visualisations) ---- */
+function renderCard(type,p,box,parent){
+  const g=el('g',{}); parent.appendChild(g);
+  ({pie:drawPie, bar:drawBarViz, set:drawSet, line:drawLineViz, num:drawNum}[type]||drawNum)(g,box,p);
+}
+function drawPie(g,box,p){
+  const r=Math.min(box.w,box.h)/2-3, cx=box.cx, cy=box.cy;
+  let bounds=[0];
+  if(p.angles){let a=0; p.angles.forEach(v=>{a+=v;bounds.push(a);});}
+  else for(let i=1;i<=p.parts;i++) bounds.push(i/p.parts);
+  for(let i=0;i<bounds.length-1;i++){
+    const a0=-Math.PI/2+bounds[i]*2*Math.PI, a1=-Math.PI/2+bounds[i+1]*2*Math.PI;
+    const large=(a1-a0)>Math.PI?1:0;
+    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const on=i<(p.shaded||0);
+    g.appendChild(el('path',{d:`M ${cx} ${cy} L ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z`,
+      fill:on?'#ff2e88':'rgba(255,255,255,0.10)',stroke:'#0c0418','stroke-width':2}));
+  }
+  g.appendChild(el('circle',{cx,cy,r,fill:'none',stroke:'#fff','stroke-width':3}));
+}
+function drawBarViz(g,box,p){
+  const w=box.w, h=box.h*0.6, x0=box.cx-w/2, y0=box.cy-h/2, bw=w/p.parts;
+  for(let i=0;i<p.parts;i++)
+    g.appendChild(el('rect',{x:x0+i*bw,y:y0,width:bw,height:h,fill:i<p.shaded?'#ffb02e':'rgba(255,255,255,0.10)',stroke:'#0c0418','stroke-width':2}));
+  g.appendChild(el('rect',{x:x0,y:y0,width:w,height:h,rx:6,fill:'none',stroke:'#fff','stroke-width':3}));
+}
+function drawSet(g,box,p){
+  const n=p.total, cols=Math.ceil(Math.sqrt(n)), rows=Math.ceil(n/cols);
+  const cell=Math.min(box.w/cols,box.h/rows), rr=cell*0.34;
+  const x0=box.cx-(cols*cell)/2+cell/2, y0=box.cy-(rows*cell)/2+cell/2;
+  for(let i=0;i<n;i++){const cxp=x0+(i%cols)*cell, cyp=y0+Math.floor(i/cols)*cell, on=i<p.shaded;
+    g.appendChild(el('circle',{cx:cxp,cy:cyp,r:rr,fill:on?'#ff7eb6':'rgba(255,255,255,0.12)',stroke:'#0c0418','stroke-width':2}));
+    if(on) g.appendChild(el('circle',{cx:cxp-rr*0.3,cy:cyp-rr*0.3,r:rr*0.25,fill:'#fff',opacity:.5}));}
+}
+function drawLineViz(g,box,p){
+  const x0=box.cx-box.w/2, x1=box.cx+box.w/2, y=box.cy;
+  g.appendChild(el('line',{x1:x0,y1:y,x2:x1,y2:y,stroke:'#2ee6ff','stroke-width':4,'stroke-linecap':'round'}));
+  for(let i=0;i<=p.steps;i++){const x=x0+(x1-x0)*i/p.steps, end=(i===0||i===p.steps);
+    g.appendChild(el('line',{x1:x,y1:y-7,x2:x,y2:y+7,stroke:'#fff',opacity:end?1:.5,'stroke-width':end?4:2}));}
+  g.appendChild(el('circle',{cx:x0+(x1-x0)*p.value,cy:y,r:11,fill:'url(#cutGrad)',stroke:'#fff','stroke-width':3}));
+}
+function drawNum(g,box,p){
+  const t=el('text',{x:box.cx,y:box.cy+box.h*0.17,'text-anchor':'middle','font-size':box.h*0.5,'font-family':"'Black Han Sans',sans-serif",fill:'#fff'});
+  t.textContent=p.text; g.appendChild(t);
+}
+
+/* ---- MECHANIC: build — add unit pieces to make ONE whole (n/n = 1) ---- */
+MECHANICS.build={
+  mount(lv){
+    subhint.textContent='Tap to add a piece';
+    const n=lv.parts, h=BAR.h, left=FOOD.cx-BAR.w/2, top=FOOD.cy-h/2, bw=BAR.w/n;
+    this.n=n; this.filled=0; this.slots=[];
+    for(let i=0;i<n;i++){
+      const x0=left+i*bw;
+      const r=el('rect',{x:x0,y:top,width:bw,height:h,fill:'rgba(255,255,255,0.05)',stroke:'#2a160a','stroke-width':3});
+      scene.appendChild(r); this.slots.push(r);
+    }
+    scene.appendChild(el('rect',{x:left,y:top,width:BAR.w,height:h,rx:16,fill:'none',stroke:'#3a2012','stroke-width':5}));
+    this.count=el('text',{x:FOOD.cx,y:top-20,'text-anchor':'middle','font-size':38,'font-family':"'Black Han Sans',sans-serif",fill:'#fff',stroke:'#0c0418','stroke-width':4,'paint-order':'stroke'});
+    this.count.textContent=`0/${n}`; scene.appendChild(this.count);
+    // "+ add piece" button
+    const btn=el('g',{style:'cursor:pointer'});
+    btn.appendChild(el('rect',{x:FOOD.cx-95,y:top+h+26,width:190,height:56,rx:28,fill:'url(#cutGrad)',stroke:'#fff','stroke-width':3,filter:'url(#glow)'}));
+    const bt=el('text',{x:FOOD.cx,y:top+h+63,'text-anchor':'middle','font-size':26,'font-family':"'Black Han Sans',sans-serif",fill:'#fff'}); bt.textContent='+ add a piece'; btn.appendChild(bt);
+    const add=e=>{e.preventDefault(); e.stopPropagation(); this.add(lv);};
+    btn.addEventListener('click',add); btn.addEventListener('touchstart',add,{passive:false});
+    scene.appendChild(btn);
+  },
+  add(lv){
+    if(state.locked||this.filled>=this.n) return;
+    sfxPop();
+    this.slots[this.filled].setAttribute('fill','url(#barGrad)');
+    this.slots[this.filled].setAttribute('stroke',cast[0].accent);
+    this.filled++;
+    this.count.textContent = this.filled===this.n ? '1 whole!' : `${this.filled}/${this.n}`;
+    if(this.filled===this.n) winLevel(lv);
+  }
+};
+
+/* ---- MECHANIC: shade — tap parts of ONE shape to show a fraction ---- */
+MECHANICS.shade={
+  mount(lv){
+    subhint.textContent='Tap parts to shade';
+    const n=lv.parts, h=BAR.h, left=FOOD.cx-BAR.w/2, top=FOOD.cy-h/2, bw=BAR.w/n;
+    this.parts=n; this.target=lv.target; this.on=new Array(n).fill(false); this.segs=[];
+    for(let i=0;i<n;i++){
+      const x0=left+i*bw;
+      const r=el('rect',{x:x0,y:top,width:bw,height:h,fill:'rgba(255,255,255,0.06)',stroke:'#0c0418','stroke-width':3,style:'cursor:pointer'});
+      const tog=e=>{e.preventDefault(); e.stopPropagation(); this.toggle(i,lv);};
+      r.addEventListener('click',tog); r.addEventListener('touchstart',tog,{passive:false});
+      scene.appendChild(r); this.segs.push(r);
+    }
+    scene.appendChild(el('rect',{x:left,y:top,width:BAR.w,height:h,rx:14,fill:'none',stroke:'#fff','stroke-width':5}));
+    this.count=el('text',{x:FOOD.cx,y:top-20,'text-anchor':'middle','font-size':36,'font-family':"'Black Han Sans',sans-serif",fill:'#fff',stroke:'#0c0418','stroke-width':4,'paint-order':'stroke'});
+    this.count.textContent=`0/${n}`; scene.appendChild(this.count);
+  },
+  toggle(i,lv){
+    if(state.locked) return;
+    this.on[i]=!this.on[i]; sfxPop();
+    this.segs[i].setAttribute('fill', this.on[i]?'#ff2e88':'rgba(255,255,255,0.06)');
+    const c=this.on.filter(Boolean).length;
+    this.count.textContent=`${c}/${this.parts}`;
+    if(c===this.target) winLevel(lv);
+  }
+};
+
+/* ---- MECHANIC: order — tap the cards from smallest to biggest ---- */
+MECHANICS.order={
+  mount(lv){
+    subhint.textContent='Tap smallest → biggest';
+    const items=shuffle(lv.items.map(o=>o));
+    this.expected=lv.items.map(it=>it.value).slice().sort((a,b)=>a-b);
+    this.picked=0; this.cards=[];
+    const n=items.length, L=cardLayout(n);
+    items.forEach((it,i)=>{
+      const cxp=L.xFor(i);
+      const card=optionCard(cxp,L,it.type,it.params);
+      const badge=el('text',{x:cxp,y:L.cy-L.boxH/2-10,'text-anchor':'middle','font-size':34,'font-family':"'Black Han Sans',sans-serif",fill:'#2ee6ff',stroke:'#0c0418','stroke-width':4,'paint-order':'stroke',opacity:0});
+      card.appendChild(badge);
+      card._val=it.value; card._badge=badge; card._used=false;
+      const pick=e=>{e.preventDefault(); e.stopPropagation(); this.tap(card,lv);};
+      card.addEventListener('click',pick); card.addEventListener('touchstart',pick,{passive:false});
+      scene.appendChild(card); this.cards.push(card);
+    });
+  },
+  tap(card,lv){
+    if(state.locked||card._used) return;
+    if(Math.abs(card._val-this.expected[this.picked])<1e-6){
+      card._used=true; this.picked++; sfxPop();
+      card._badge.textContent=this.picked; card._badge.setAttribute('opacity',1);
+      cardStroke(card,'#39e08a',1);
+      if(this.picked===this.expected.length) winLevel(lv);
+    } else {
+      sfxError();
+      this.cards.forEach(c=>{c._used=false; c._badge.setAttribute('opacity',0); cardStroke(c,'#ffffff',.35);});
+      this.picked=0; subhint.textContent='Start from the smallest!';
+      card.animate(shakeKf,{duration:260});
+    }
+  }
+};
+
+/* ---- MECHANIC: pickpair — tap TWO pieces that make one whole ---- */
+MECHANICS.pickpair={
+  mount(lv){
+    subhint.textContent=lv.q||'Tap two that make 1 whole';
+    const opts=shuffle(lv.options.map(o=>o));
+    this.targetSum=lv.targetSum||1; this.first=null;
+    const n=opts.length, L=cardLayout(n);
+    opts.forEach((opt,i)=>{
+      const card=optionCard(L.xFor(i),L,opt.type,opt.params);
+      card._val=opt.value;
+      const pick=e=>{e.preventDefault(); e.stopPropagation(); this.tap(card,lv);};
+      card.addEventListener('click',pick); card.addEventListener('touchstart',pick,{passive:false});
+      scene.appendChild(card);
+    });
+  },
+  tap(card,lv){
+    if(state.locked) return;
+    if(!this.first){ this.first=card; cardStroke(card,'#2ee6ff',1); sfxPop(); return; }
+    if(card===this.first){ cardStroke(card,'#ffffff',.35); this.first=null; return; }
+    if(Math.abs(this.first._val+card._val-this.targetSum)<1e-6){
+      cardStroke(card,'#39e08a',1); cardStroke(this.first,'#39e08a',1); winLevel(lv);
+    } else {
+      sfxError(); const f=this.first; cardStroke(card,'#ff3b6b',1);
+      subhint.textContent="That's not a whole — try again";
+      setTimeout(()=>{cardStroke(card,'#ffffff',.35); cardStroke(f,'#ffffff',.35);},700);
+      this.first=null;
+    }
+  }
+};
+
+function showReveal(lv){
+  // praise banner appears at the TOP, above the characters
+  const tc=document.getElementById('topCongrats');
+  tc.textContent=praiseMsg(); tc.classList.remove('show'); void tc.offsetWidth; tc.classList.add('show');
+  document.getElementById('bigfrac').textContent=lv.label;
+  document.getElementById('frline').textContent=lv.line;
+  const ex=document.getElementById('explain');
+  if(lv.say){ ex.style.display=''; ex.innerHTML=`<b>${lv.label}</b> means “${lv.say}”`; }
+  else { ex.style.display='none'; ex.innerHTML=''; }
+  document.getElementById('nextBtn').textContent = (state.level<LEVELS.length-1)?'Next ▶':'Finish ★';
+  revealEl.classList.add('show');
+}
+function finishGame(){
+  promptWrap.style.display='';
+  promptEl.textContent='YOU DID IT! ★';
+  subhint.textContent=`Great sharing, ${state.name}!`;
+  revealEl.classList.remove('show');
+  const tc=document.getElementById('topCongrats'); tc.textContent=`Amazing, ${state.name}!`; tc.classList.add('show');
+  document.getElementById('nextBtn').textContent='Play again';
+  document.getElementById('nextBtn').onclick=()=>{location.reload();};
+  launchConfetti(); celebrate();
+}
+
+/* =====================================================================
+   CONFETTI (neon)
+   ===================================================================== */
+const cvs=document.getElementById('confetti'), cx=cvs.getContext('2d');
+let parts2=[], anim=null;
+function rs(){cvs.width=cvs.clientWidth;cvs.height=cvs.clientHeight;}
+window.addEventListener('resize',rs);
+function launchConfetti(){
+  rs();
+  const cols=['#ff2e88','#2ee6ff','#a44dff','#ffd23f','#ff5fae','#13c4c9'];
+  parts2=[];
+  for(let i=0;i<150;i++) parts2.push({x:Math.random()*cvs.width,y:-20-Math.random()*cvs.height*.4,
+    r:5+Math.random()*9,c:cols[i%cols.length],vy:2.4+Math.random()*3.2,vx:-1.6+Math.random()*3.2,
+    rot:Math.random()*6.28,vr:-.25+Math.random()*.5});
+  const t0=performance.now(); cancelAnimationFrame(anim);
+  (function f(now){
+    cx.clearRect(0,0,cvs.width,cvs.height);
+    for(const p of parts2){p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.vy+=.04;
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);cx.fillStyle=p.c;
+      cx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.62);cx.restore();}
+    if(now-t0<3600) anim=requestAnimationFrame(f); else cx.clearRect(0,0,cvs.width,cvs.height);
+  })(t0);
+}
+</script>
+</body>
+</html>
