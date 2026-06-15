@@ -1,6 +1,7 @@
 # Local-only — never pushed to GitHub
 CLAUDE.md
 .secret-token
+prototype-*.html
 
 # macOS
 .DS_Store

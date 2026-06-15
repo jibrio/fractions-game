@@ -71,6 +71,8 @@
   }
   .btn:active{transform:translateY(4px); box-shadow:0 0 18px rgba(255,46,136,.5), 0 2px 0 #7a0a40;}
   .btn.cyan{background:linear-gradient(180deg,var(--cyan),#0b9ec2); box-shadow:0 0 22px rgba(46,230,255,.6),0 6px 0 #07697f;}
+  .btn.violet{background:linear-gradient(180deg,var(--purple),#6a2bb0); box-shadow:0 0 22px rgba(164,77,255,.6),0 6px 0 #4a1d80;}
+  .btn.violet:active{box-shadow:0 0 18px rgba(164,77,255,.5),0 2px 0 #4a1d80;}
 
   /* ===== LEVEL LAYOUT: chars top (in svg) / food middle (in svg) / text bottom ===== */
   #levelScreen{justify-content:space-between; padding:8px 8px 14px;}
@@ -142,7 +144,7 @@
       <div class="modeRow">
         <button class="btn" id="learnBtn">Learn ▶</button>
         <button class="btn cyan" id="endlessBtn">Endless ∞</button>
-        <button class="btn" id="levelsBtn">Levels ▦</button>
+        <button class="btn violet" id="levelsBtn">Levels ▦</button>
       </div>
     </div>
   </section>
@@ -447,7 +449,7 @@ const promptWrap=document.getElementById('promptWrap');
 const revealEl=document.getElementById('reveal');
 function show(name){Object.values(screens).forEach(s=>s.classList.remove('active'));screens[name].classList.add('active');}
 /* single source of truth for the build version (shown bottom-centre) */
-const VERSION='v1.0';
+const VERSION='v1.1';
 document.getElementById('versionTag').textContent=VERSION;
 
 function startGame(mode){
