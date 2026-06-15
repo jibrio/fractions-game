@@ -88,6 +88,9 @@
   #subhint{font-weight:600; font-size:14px; color:rgba(255,255,255,.6); margin-top:8px; height:18px; letter-spacing:.5px;}
 
   .muteBtn{background:none; border:none; cursor:pointer; font-size:22px; line-height:1; padding:2px 4px; filter:drop-shadow(0 0 6px rgba(46,230,255,.5));}
+  .modeRow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:18px;}
+  .modeRow .btn{margin-top:0;}
+  .streak{font-weight:800; font-size:13px; letter-spacing:.5px; color:var(--gold); text-shadow:0 0 10px rgba(255,210,63,.5); white-space:nowrap;}
   .topCongrats{
     position:absolute; top:54px; left:0; right:0; z-index:8; text-align:center; pointer-events:none;
     font-family:var(--disp); font-size:clamp(28px,7vw,48px); line-height:1;
@@ -122,7 +125,11 @@
     <div class="tag">★ Let's learn the fun way ★</div>
     <div class="panel">
       <div class="hello">Hi, Dara!</div>
-      <button class="btn" id="startBtn">Let's play ▶</button>
+      <p class="hellosub">Pick a way to play</p>
+      <div class="modeRow">
+        <button class="btn" id="learnBtn">Learn ▶</button>
+        <button class="btn cyan" id="endlessBtn">Endless ∞</button>
+      </div>
     </div>
   </section>
 
@@ -131,6 +138,7 @@
     <div class="topbar">
       <span class="lvtag" id="lvTag">Stage 1</span>
       <span class="dots" id="dots"></span>
+      <span class="streak" id="streak"></span>
       <button class="muteBtn" id="muteBtn" aria-label="Toggle sound">🔊</button>
     </div>
     <div id="stage"></div>
@@ -237,6 +245,68 @@ const LEVELS=[
               {type:'bar', params:{parts:6,shaded:3}} ]},
 ];
 
+/* =====================================================================
+   ENDLESS MODE — procedurally generate ever-harder levels.
+   Returns the SAME config shape the engine consumes, so nothing else
+   needs to change. Difficulty (denominators, option count, non-unit
+   fractions, multi-step puzzles) scales with the stage index n.
+   ===================================================================== */
+let lastEndlessMech=null;
+const VULGAR={'1/2':'½','1/3':'⅓','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'⅕','2/5':'⅖','3/5':'⅗','4/5':'⅘','1/6':'⅙','5/6':'⅚','1/8':'⅛','3/8':'⅜','5/8':'⅝','7/8':'⅞'};
+const fracLabel=(num,den)=>VULGAR[num+'/'+den]||(num+'/'+den);
+const rnd=n=>Math.floor(Math.random()*n);
+function generateLevel(n){
+  const maxDen=Math.min(2+Math.floor(n/2),10);     // denominators grow 2 → 10
+  const fourOpts=n>=4, friends=1;
+  let bag=['choose','shade','numberline','fill'];
+  if(n>=2) bag.push('build');
+  if(n>=4) bag.push('order','pickpair');
+  let mech; do{ mech=bag[rnd(bag.length)]; }while(mech===lastEndlessMech && bag.length>1);
+  lastEndlessMech=mech;
+  const den=2+rnd(maxDen-1);                         // 2 → maxDen
+  const num=(n<3)?1:(1+rnd(den-1));                  // unit fractions early, any later
+  const label=fracLabel(num,den);
+
+  if(mech==='shade')
+    return {mechanic:'shade',friends,parts:den,target:num,label,line:`${num} of ${den} equal parts`,prompt:`Shade ${label}`};
+  if(mech==='numberline')
+    return {mechanic:'numberline',friends,target:num/den,steps:den,label,line:`${label} on the line`,prompt:`Hop to ${label}`};
+  if(mech==='fill')
+    return {mechanic:'fill',friends,target:num/den,steps:den,label,line:`${label} full`,prompt:`Fill it to ${label}`};
+  if(mech==='build')
+    return {mechanic:'build',friends,parts:den,label:'1',line:`${den}/${den} makes one whole`,prompt:'Build 1 whole'};
+  if(mech==='order'){
+    const count=n>=6?4:3, items=[], vals=[]; let guard=0;
+    while(items.length<count && guard++<80){
+      const d=2+rnd(maxDen-1), u=1+rnd(d-1), v=u/d;
+      if(vals.every(x=>Math.abs(x-v)>0.07)){ vals.push(v); items.push({value:v,type:'bar',params:{parts:d,shaded:u}}); }
+    }
+    return {mechanic:'order',friends,items,label:'✓',line:'smallest → biggest',prompt:'Order: small → big'};
+  }
+  if(mech==='pickpair'){
+    const d=2+rnd(maxDen-1); let a=1+rnd(d-1);
+    if(a===d-a){ a=a>1?a-1:a+1; }                    // avoid an identical ½ + ½ pair
+    const opts=[{value:a/d,type:'bar',params:{parts:d,shaded:a}},{value:(d-a)/d,type:'bar',params:{parts:d,shaded:d-a}}];
+    const nOpts=fourOpts?4:3; let guard=0;
+    while(opts.length<nOpts && guard++<80){
+      const d2=2+rnd(maxDen-1), u2=1+rnd(d2-1), v=u2/d2;
+      if(opts.every(o=>Math.abs(o.value-v)>0.04) && Math.abs(v+a/d-1)>0.02 && Math.abs(v+(d-a)/d-1)>0.02)
+        opts.push({value:v,type:'bar',params:{parts:d2,shaded:u2}});
+    }
+    return {mechanic:'pickpair',friends,targetSum:1,options:opts,label:'1',line:`${fracLabel(a,d)} + ${fracLabel(d-a,d)} = 1`,prompt:'Tap TWO that make 1 whole'};
+  }
+  // choose (default)
+  const viz=(den<=6 && Math.random()<0.5)?'pie':'bar';
+  const used=new Set([num]), opts=[{type:viz,params:{parts:den,shaded:num},correct:true}];
+  const nOpts=fourOpts?4:3; let guard=0;
+  while(opts.length<nOpts && guard++<120){
+    let s=(Math.random()<0.6)?num+(rnd(2)+1)*(Math.random()<0.5?-1:1):rnd(den+1);
+    if(s<0||s>den) s=rnd(den+1);
+    if(s!==num && !used.has(s)){ used.add(s); opts.push({type:viz,params:{parts:den,shaded:s}}); }
+  }
+  return {mechanic:'choose',friends,options:opts,label,line:`${num} of ${den} equal parts`,prompt:`Which shows ${label}?`};
+}
+
 /* ---------- diverse character roster (United Colors of Benetton vibe) ---------- */
 const KIDS=[
   {name:'Amara', skin:'#7a4a26', hair:'#241712', streak:'#ff2e88', outfit:'#13c4c9', accent:'#ffd23f',
@@ -254,7 +324,7 @@ const KIDS=[
 ];
 
 /* ---------- state ---------- */
-const state={name:'Dara', age:null, level:0, locked:false};
+const state={name:'Dara', age:null, level:0, locked:false, mode:'learn', streak:0, best:0, missed:false, genIdx:-1, genLv:null, lv:null};
 
 /* =====================================================================
    AUDIO  — all synthesised with the Web Audio API (sfx + celebration).
@@ -350,11 +420,14 @@ const promptWrap=document.getElementById('promptWrap');
 const revealEl=document.getElementById('reveal');
 function show(name){Object.values(screens).forEach(s=>s.classList.remove('active'));screens[name].classList.add('active');}
 
-document.getElementById('startBtn').addEventListener('click',()=>{
-  state.name='Dara';
+function startGame(mode){
+  state.name='Dara'; state.mode=mode; state.streak=0; state.best=0;
+  state.genIdx=-1; state.genLv=null; lastEndlessMech=null;
   audioInit();
   startLevel(0);
-});
+}
+document.getElementById('learnBtn').addEventListener('click',()=>startGame('learn'));
+document.getElementById('endlessBtn').addEventListener('click',()=>startGame('endless'));
 document.getElementById('muteBtn').addEventListener('click',()=>{
   AUDIO.muted=!AUDIO.muted;
   document.getElementById('muteBtn').textContent = AUDIO.muted ? '🔇' : '🔊';
@@ -363,7 +436,8 @@ document.getElementById('muteBtn').addEventListener('click',()=>{
 document.getElementById('nextBtn').addEventListener('click',()=>{
   audioInit();
   const n=state.level+1;
-  if(n<LEVELS.length) startLevel(n);
+  if(state.mode==='endless') startLevel(n);
+  else if(n<LEVELS.length) startLevel(n);
   else finishGame();
 });
 
@@ -581,16 +655,29 @@ function optionCard(cxp,L,type,params){
 function cardStroke(card,color,op){ card._panel.setAttribute('stroke',color); card._panel.setAttribute('stroke-opacity',op); }
 const shakeKf=[{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}];
 
+function levelFor(idx){
+  if(state.mode==='endless'){
+    if(state.genIdx!==idx){ state.genLv=generateLevel(idx); state.genIdx=idx; }
+    return state.genLv;
+  }
+  return LEVELS[idx];
+}
 function startLevel(idx){
-  state.level=idx; state.locked=false;
+  state.level=idx; state.locked=false; state.missed=false;
   kids=[]; guides=[]; cuts=[]; blocks=[]; claimed=0; dragging=false;
-  const lv=LEVELS[idx];
+  const lv=levelFor(idx); state.lv=lv;
   show('level');
   revealEl.classList.remove('show'); promptWrap.style.display='';
   promptEl.textContent=lv.prompt;
   document.getElementById('lvTag').textContent='Stage '+(idx+1);
-  const dots=document.getElementById('dots'); dots.innerHTML='';
-  LEVELS.forEach((_,i)=>{const d=document.createElement('span');d.className='dot'+(i<=idx?' on':'');dots.appendChild(d);});
+  // progress UI: dots for the learn path, a streak counter for endless
+  const dots=document.getElementById('dots'); const streakEl=document.getElementById('streak');
+  if(state.mode==='endless'){
+    dots.style.display='none'; streakEl.style.display=''; updateStreak();
+  } else {
+    streakEl.style.display='none'; dots.style.display=''; dots.innerHTML='';
+    LEVELS.forEach((_,i)=>{const d=document.createElement('span');d.className='dot'+(i<=idx?' on':'');dots.appendChild(d);});
+  }
 
   stage.innerHTML='';
   scene=el('svg',{class:'scene',viewBox:`0 0 ${VB} ${VB}`,preserveAspectRatio:'xMidYMid meet'});
@@ -612,16 +699,27 @@ function startLevel(idx){
   const tc=document.getElementById('topCongrats'); tc.classList.remove('show'); tc.textContent='';
 }
 
+/* ---- streak (endless mode) ---- */
+function updateStreak(){
+  const el=document.getElementById('streak');
+  if(el) el.textContent = `🔥 ${state.streak}  ·  best ${state.best}`;
+}
+function endlessMiss(){
+  if(state.mode!=='endless') return;
+  state.missed=true; state.streak=0; updateStreak();
+}
+
 /* ---- shared outcomes (reused by every mechanic) ---- */
 function winLevel(lv){
   state.locked=true;
+  if(state.mode==='endless'){ state.streak++; state.best=Math.max(state.best,state.streak); updateStreak(); }
   celebrate();
   kids.forEach(k=>{setMood(k,'happy'); bounce(k);});
   setTimeout(()=>{ launchConfetti(); promptWrap.style.display='none'; showReveal(lv); }, 560);
 }
 function missLevel(lv, react, msg, hint){
   state.locked=true;
-  sfxError();
+  sfxError(); endlessMiss();
   if(react) react();
   promptEl.textContent=msg||'Try again';
   subhint.textContent=hint||'';
@@ -725,7 +823,7 @@ function wobble(){
 function sliceEvaluate(){
   state.locked=true;
   guides.forEach(g=>g.remove());
-  const lv=LEVELS[state.level];
+  const lv=state.lv;
   const x=cuts[0];
   const p=(x-(FOOD.cx-APPLE_R))/(2*APPLE_R);          // left piece as a fraction of the apple
   const segs=[{frac:p,side:-1},{frac:1-p,side:1}];
@@ -842,7 +940,7 @@ MECHANICS.numberline={
   place(v){this.val=v; this.marker.setAttribute('transform',`translate(${nlX(v)},${NL.y})`);},
   down(p,e){if(Math.abs(p.y-NL.y)>120)return; e.preventDefault(); this.dragging=true; this.place(snapTo(nlV(p.x),this.steps));},
   move(p,e){if(!this.dragging)return; e.preventDefault(); this.place(snapTo(nlV(p.x),this.steps));},
-  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=LEVELS[state.level];
+  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=state.lv;
     if(Math.abs(this.val-this.target)<1e-6){ this.mlab.setAttribute('opacity',1); winLevel(lv); }
     else missLevel(lv, ()=>{setMood(kids[0],'sad');
       this.marker.animate([{transform:`translate(${nlX(this.val)-9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)+9}px,${NL.y}px)`},{transform:`translate(${nlX(this.val)}px,${NL.y}px)`}],{duration:320});},
@@ -881,7 +979,7 @@ MECHANICS.fill={
   inGlass(p){return p.x>GL.x0-55 && p.x<GL.x1+55 && p.y>GL.y0-30 && p.y<GL.y1+30;},
   down(p,e){if(!this.inGlass(p))return; e.preventDefault(); this.dragging=true; this.setFill(snapTo(glFForY(p.y),this.steps));},
   move(p,e){if(!this.dragging)return; e.preventDefault(); this.setFill(snapTo(glFForY(p.y),this.steps));},
-  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=LEVELS[state.level];
+  up(p,e){if(!this.dragging)return; this.dragging=false; const lv=state.lv;
     if(Math.abs(this.val-this.target)<1e-6) winLevel(lv);
     else missLevel(lv, ()=>setMood(kids[0], this.val>this.target?'greedy':'sad'),
       this.val>this.target?'Too much!':'Not enough', `Fill it to ${lv.label}`);}
@@ -909,7 +1007,7 @@ function choosePick(card,lv){
     card.animate([{transform:'translateY(0)'},{transform:'translateY(-12px)'},{transform:'translateY(0)'}],{duration:380});
     winLevel(lv);
   } else {
-    card._done=true; sfxError(); cardStroke(card,'#ff3b6b',1);
+    card._done=true; sfxError(); endlessMiss(); cardStroke(card,'#ff3b6b',1);
     card.animate(shakeKf,{duration:300});
     if(kids[0]) setMood(kids[0],'sad');
     subhint.textContent='Not that one — try again!';
@@ -1050,7 +1148,7 @@ MECHANICS.order={
       cardStroke(card,'#39e08a',1);
       if(this.picked===this.expected.length) winLevel(lv);
     } else {
-      sfxError();
+      sfxError(); endlessMiss();
       this.cards.forEach(c=>{c._used=false; c._badge.setAttribute('opacity',0); cardStroke(c,'#ffffff',.35);});
       this.picked=0; subhint.textContent='Start from the smallest!';
       card.animate(shakeKf,{duration:260});
@@ -1080,8 +1178,8 @@ MECHANICS.pickpair={
     if(Math.abs(this.first._val+card._val-this.targetSum)<1e-6){
       cardStroke(card,'#39e08a',1); cardStroke(this.first,'#39e08a',1); winLevel(lv);
     } else {
-      sfxError(); const f=this.first; cardStroke(card,'#ff3b6b',1);
-      subhint.textContent="That's not a whole — try again";
+      sfxError(); endlessMiss(); const f=this.first; cardStroke(card,'#ff3b6b',1);
+      subhint.textContent="That's not a whole - try again";
       setTimeout(()=>{cardStroke(card,'#ffffff',.35); cardStroke(f,'#ffffff',.35);},700);
       this.first=null;
     }
@@ -1097,7 +1195,7 @@ function showReveal(lv){
   const ex=document.getElementById('explain');
   if(lv.say){ ex.style.display=''; ex.innerHTML=`<b>${lv.label}</b> means “${lv.say}”`; }
   else { ex.style.display='none'; ex.innerHTML=''; }
-  document.getElementById('nextBtn').textContent = (state.level<LEVELS.length-1)?'Next ▶':'Finish ★';
+  document.getElementById('nextBtn').textContent = (state.mode==='endless'||state.level<LEVELS.length-1)?'Next ▶':'Finish ★';
   revealEl.classList.add('show');
 }
 function finishGame(){
