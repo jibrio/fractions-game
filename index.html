@@ -125,6 +125,8 @@
   .explain b{color:var(--cyan); font-weight:800;}
 
   canvas#confetti{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:9;}
+  .version{position:absolute; bottom:4px; left:0; right:0; text-align:center; font-size:11px;
+    letter-spacing:1.5px; color:rgba(255,255,255,.4); z-index:2; pointer-events:none;}
 </style>
 </head>
 <body>
@@ -179,6 +181,7 @@
 
   <div id="topCongrats" class="topCongrats"></div>
   <canvas id="confetti"></canvas>
+  <div class="version" id="versionTag">v1.0</div>
 </div>
 
 <script>
@@ -443,6 +446,9 @@ const subhint=document.getElementById('subhint');
 const promptWrap=document.getElementById('promptWrap');
 const revealEl=document.getElementById('reveal');
 function show(name){Object.values(screens).forEach(s=>s.classList.remove('active'));screens[name].classList.add('active');}
+/* single source of truth for the build version (shown bottom-centre) */
+const VERSION='v1.0';
+document.getElementById('versionTag').textContent=VERSION;
 
 function startGame(mode){
   state.name='Dara'; state.mode=mode; state.streak=0; state.best=0;

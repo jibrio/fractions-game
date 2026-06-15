@@ -2,6 +2,10 @@
 
 All notable changes to Cool Fractions, newest first.
 
+## v1.0 — 2026-06-15
+- Added a small version label (bottom-centre) so the running build is always
+  identifiable. Versioning starts here at v1.0 and bumps every push.
+
 ## 2026-06-15 — Verify button, Levels gallery, tougher endless
 - The "set a proportion" puzzles (Shade, Fill, Place on the Line, Build) no
   longer auto-complete the moment you're right — you set your answer and press
